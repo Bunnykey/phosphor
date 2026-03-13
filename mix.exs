@@ -59,7 +59,15 @@ defmodule NxLiveViz.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
-      {:bandit, "~> 1.5"}
+      {:bandit, "~> 1.5"},
+
+      # ML / Nx ecosystem
+      {:nx, "~> 0.9"},
+      {:exla, "~> 0.9"},
+      {:axon, "~> 0.7"},
+      {:polaris, "~> 0.1"},
+      {:bumblebee, "~> 0.6"},
+      {:stb_image, "~> 0.6"}
     ]
   end
 

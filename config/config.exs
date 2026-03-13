@@ -47,6 +47,9 @@ config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
+# Configure Nx to use EXLA backend by default
+config :nx, default_backend: EXLA.Backend
+
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
