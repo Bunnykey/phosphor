@@ -17,7 +17,7 @@ defmodule NxLiveVizWeb.Router do
   scope "/", NxLiveVizWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", DashboardLive
   end
 
   # Other scopes may use custom stacks.
