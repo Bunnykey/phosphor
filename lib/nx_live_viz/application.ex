@@ -1,6 +1,4 @@
 defmodule NxLiveViz.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
   @moduledoc false
 
   use Application
@@ -9,22 +7,30 @@ defmodule NxLiveViz.Application do
   def start(_type, _args) do
     children = [
       NxLiveVizWeb.Telemetry,
-      {DNSCluster, query: Application.get_env(:nx_live_viz, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: NxLiveViz.PubSub},
-      # Start a worker by calling: NxLiveViz.Worker.start_link(arg)
-      # {NxLiveViz.Worker, arg},
-      # Start to serve requests, typically the last entry
+
+      # Data sources
+      NxLiveViz.Data.Simulator,
+      {NxLiveViz.Data.CryptoAPI, active: false},
+
+      # ML Servings (each in its own process)
+      {Nx.Serving,
+       serving: NxLiveViz.ML.ImageClassifier.serving(),
+       name: NxLiveViz.ImageServing,
+       batch_timeout: 100},
+      {Nx.Serving,
+       serving: NxLiveViz.ML.Sentiment.serving(),
+       name: NxLiveViz.SentimentServing,
+       batch_timeout: 100},
+
+      # Web
       NxLiveVizWeb.Endpoint
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
     opts = [strategy: :one_for_one, name: NxLiveViz.Supervisor]
     Supervisor.start_link(children, opts)
   end
 
-  # Tell Phoenix to update the endpoint configuration
-  # whenever the application is updated.
   @impl true
   def config_change(changed, _new, removed) do
     NxLiveVizWeb.Endpoint.config_change(changed, removed)
