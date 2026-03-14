@@ -26,7 +26,7 @@ defmodule NxLiveViz.Data.Simulator do
       end
 
     %{
-      value: value / 1.0,
+      value: value,
       timestamp: DateTime.utc_now(),
       anomaly: is_anomaly
     }

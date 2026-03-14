@@ -13,6 +13,7 @@ defmodule NxLiveVizWeb.TrainingLive do
      assign(socket,
        training: false,
        task_ref: nil,
+       task_pid: nil,
        epochs: 10,
        learning_rate: 0.001,
        batch_size: 32,
@@ -35,11 +36,16 @@ defmodule NxLiveVizWeb.TrainingLive do
         )
       end)
 
-    {:noreply, assign(socket, training: true, task_ref: task.ref, losses: [], accuracies: [])}
+    {:noreply, assign(socket, training: true, task_ref: task.ref, task_pid: task.pid, losses: [], accuracies: [])}
   end
 
   def handle_event("stop", _params, socket) do
-    {:noreply, assign(socket, training: false)}
+    if socket.assigns.task_pid do
+      Process.demonitor(socket.assigns.task_ref, [:flush])
+      Process.exit(socket.assigns.task_pid, :kill)
+    end
+
+    {:noreply, assign(socket, training: false, task_ref: nil, task_pid: nil)}
   end
 
   def handle_event("reset", _params, socket) do
@@ -66,8 +72,10 @@ defmodule NxLiveVizWeb.TrainingLive do
 
   @impl true
   def handle_info({:training_metrics, metrics}, socket) do
-    losses = socket.assigns.losses ++ [metrics.loss]
-    accuracies = socket.assigns.accuracies ++ [metrics.accuracy]
+    losses = [metrics.loss | socket.assigns.losses]
+    accuracies = [metrics.accuracy | socket.assigns.accuracies]
+    display_losses = Enum.reverse(losses)
+    display_accuracies = Enum.reverse(accuracies)
     labels = Enum.map(1..length(losses), &to_string/1)
 
     socket =
@@ -80,11 +88,11 @@ defmodule NxLiveVizWeb.TrainingLive do
       )
       |> push_event("chart-data:loss-chart", %{
         labels: labels,
-        values: losses
+        values: display_losses
       })
       |> push_event("chart-data:accuracy-chart", %{
         labels: labels,
-        values: accuracies
+        values: display_accuracies
       })
 
     {:noreply, socket}
@@ -101,12 +109,12 @@ defmodule NxLiveVizWeb.TrainingLive do
 
   def handle_info({ref, _result}, socket) when ref == socket.assigns.task_ref do
     Process.demonitor(ref, [:flush])
-    {:noreply, assign(socket, training: false, task_ref: nil)}
+    {:noreply, assign(socket, training: false, task_ref: nil, task_pid: nil)}
   end
 
   def handle_info({:DOWN, ref, :process, _pid, _reason}, socket)
       when ref == socket.assigns.task_ref do
-    {:noreply, assign(socket, training: false, task_ref: nil)}
+    {:noreply, assign(socket, training: false, task_ref: nil, task_pid: nil)}
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}

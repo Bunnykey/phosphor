@@ -43,7 +43,7 @@ defmodule NxLiveViz.Data.CryptoAPI do
     case fetch_price() do
       {:ok, price} ->
         point = %{
-          value: price / 1.0,
+          value: price * 1.0,
           timestamp: DateTime.utc_now(),
           anomaly: false
         }

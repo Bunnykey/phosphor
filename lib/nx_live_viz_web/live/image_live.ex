@@ -27,37 +27,46 @@ defmodule NxLiveVizWeb.ImageLive do
           {:ok, File.read!(path)}
         end)
 
-      # Run classification in a task to avoid blocking
-      task = Task.async(fn -> ImageClassifier.classify(binary) end)
-      result = Task.await(task, 30_000)
+      filename = entry.client_name
+      pid = self()
 
-      predictions =
-        result.predictions
-        |> Enum.map(fn %{label: label, score: score} ->
-          %{label: label, score: Float.round(score, 4)}
-        end)
+      Task.start(fn ->
+        result = ImageClassifier.classify(binary)
+        send(pid, {:classification_result, filename, result})
+      end)
 
-      history_entry = %{
-        filename: entry.client_name,
-        top_label: hd(predictions).label,
-        score: hd(predictions).score,
-        time: DateTime.utc_now()
-      }
-
-      socket =
-        socket
-        |> assign(:predictions, predictions)
-        |> assign(:classifying, false)
-        |> update(:history, fn h -> [history_entry | Enum.take(h, 9)] end)
-        |> push_event("chart-data:image-chart", %{
-          labels: Enum.map(predictions, & &1.label),
-          values: Enum.map(predictions, & &1.score)
-        })
-
-      {:noreply, socket}
+      {:noreply, assign(socket, :classifying, true)}
     else
       {:noreply, assign(socket, :classifying, true)}
     end
+  end
+
+  @impl true
+  def handle_info({:classification_result, filename, result}, socket) do
+    predictions =
+      result.predictions
+      |> Enum.map(fn %{label: label, score: score} ->
+        %{label: label, score: Float.round(score, 4)}
+      end)
+
+    history_entry = %{
+      filename: filename,
+      top_label: hd(predictions).label,
+      score: hd(predictions).score,
+      time: DateTime.utc_now()
+    }
+
+    socket =
+      socket
+      |> assign(:predictions, predictions)
+      |> assign(:classifying, false)
+      |> update(:history, fn h -> [history_entry | Enum.take(h, 9)] end)
+      |> push_event("chart-data:image-chart", %{
+        labels: Enum.map(predictions, & &1.label),
+        values: Enum.map(predictions, & &1.score)
+      })
+
+    {:noreply, socket}
   end
 
   @impl true

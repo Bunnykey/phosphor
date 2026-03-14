@@ -18,13 +18,12 @@ defmodule NxLiveViz.ML.AnomalyDetector do
     input_size = Keyword.get(opts, :input_size, @default_input_size)
     model = build_model(opts)
     template = Nx.template({1, input_size}, :f32)
-    {init_fn, _} = Axon.build(model)
+    {init_fn, predict_fn} = Axon.build(model)
     params = init_fn.(template, %{})
-    %{params: params, model: model, input_size: input_size}
+    %{params: params, model: model, predict_fn: predict_fn, input_size: input_size}
   end
 
-  def predict(%{params: params, model: model}, input) do
-    {_init_fn, predict_fn} = Axon.build(model)
+  def predict(%{params: params, predict_fn: predict_fn}, input) do
     output = predict_fn.(params, input)
 
     reconstruction_error =
