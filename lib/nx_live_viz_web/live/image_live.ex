@@ -31,8 +31,12 @@ defmodule NxLiveVizWeb.ImageLive do
       pid = self()
 
       Task.start(fn ->
-        result = ImageClassifier.classify(binary)
-        send(pid, {:classification_result, filename, result})
+        try do
+          result = ImageClassifier.classify(binary)
+          send(pid, {:classification_result, filename, result})
+        rescue
+          _ -> send(pid, {:classification_error, filename})
+        end
       end)
 
       {:noreply, assign(socket, :classifying, true)}
@@ -67,6 +71,10 @@ defmodule NxLiveVizWeb.ImageLive do
       })
 
     {:noreply, socket}
+  end
+
+  def handle_info({:classification_error, _filename}, socket) do
+    {:noreply, assign(socket, classifying: false)}
   end
 
   @impl true

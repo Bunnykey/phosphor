@@ -74,8 +74,8 @@ defmodule NxLiveVizWeb.AnomalyLive do
     {:noreply, assign(socket, source: :simulator, data_points: [], anomalies: [], anomaly_count: 0)}
   end
 
-  def handle_event("change-source", %{"source" => source}, socket) do
-    {:noreply, assign(socket, source: String.to_existing_atom(source))}
+  def handle_event("change-source", %{"source" => _source}, socket) do
+    {:noreply, socket}
   end
 
   @impl true

@@ -59,7 +59,7 @@ defmodule NxLiveViz.Data.CryptoAPI do
   end
 
   defp fetch_price do
-    case :httpc.request(:get, {~c"#{@api_url}", []}, [], []) do
+    case :httpc.request(:get, {~c"#{@api_url}", []}, [timeout: 5_000], []) do
       {:ok, {{_, 200, _}, _headers, body}} ->
         case Jason.decode(body) do
           {:ok, %{"bitcoin" => %{"usd" => price}}} -> {:ok, price}

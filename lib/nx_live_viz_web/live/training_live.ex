@@ -61,13 +61,11 @@ defmodule NxLiveVizWeb.TrainingLive do
   end
 
   def handle_event("update-params", params, socket) do
-    socket =
-      socket
-      |> assign(:epochs, String.to_integer(params["epochs"] || "10"))
-      |> assign(:learning_rate, String.to_float(params["learning_rate"] || "0.001"))
-      |> assign(:batch_size, String.to_integer(params["batch_size"] || "32"))
+    epochs = params["epochs"] |> to_string() |> String.to_integer() |> max(1) |> min(50)
+    lr = params["learning_rate"] |> to_string() |> String.to_float() |> max(0.0001) |> min(0.01)
+    batch_size = params["batch_size"] |> to_string() |> String.to_integer() |> max(8) |> min(128)
 
-    {:noreply, socket}
+    {:noreply, assign(socket, epochs: epochs, learning_rate: lr, batch_size: batch_size)}
   end
 
   @impl true

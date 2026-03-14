@@ -15,7 +15,7 @@ defmodule NxLiveVizWeb.SentimentLive do
   end
 
   @impl true
-  def handle_event("analyze", %{"text" => text}, socket) when text != "" do
+  def handle_event("analyze", %{"text" => text}, socket) when text != "" and byte_size(text) <= 10_000 do
     socket = assign(socket, analyzing: true, text: text)
 
     pid = self()
