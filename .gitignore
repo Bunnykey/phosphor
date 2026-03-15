@@ -35,7 +35,12 @@ nx_live_viz-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# LLM / vibe-coding artifacts
 .desloppify/
+.claude/
+.superpowers/
+AGENTS.md
+docs/superpowers/
 ai-slop-report.json
 scorecard.png
 tdd-demo.html
