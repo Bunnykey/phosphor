@@ -17,4 +17,27 @@ defmodule NxLiveViz.ML.AnomalyDetectorTest do
     assert Map.has_key?(result, :reconstruction_error)
     assert Map.has_key?(result, :is_anomaly)
   end
+
+  test "pretrained_detector produces result on normal data" do
+    detector = AnomalyDetector.pretrained_detector(input_size: 10)
+    normal = for i <- 0..9, do: :math.sin(i / 3.0) * 10 + 50
+    input = Nx.tensor([normal], type: :f32)
+    result = AnomalyDetector.predict(detector, input)
+    assert is_float(result.reconstruction_error)
+    assert is_boolean(result.is_anomaly)
+  end
+
+  test "pretrained_detector produces positive error on anomalous data" do
+    detector = AnomalyDetector.pretrained_detector(input_size: 10)
+    anomalous = List.duplicate(500.0, 10)
+    input = Nx.tensor([anomalous], type: :f32)
+    result = AnomalyDetector.predict(detector, input)
+    assert result.reconstruction_error > 0
+  end
+
+  test "cached_detector returns same params on subsequent calls" do
+    d1 = AnomalyDetector.cached_detector(input_size: 20)
+    d2 = AnomalyDetector.cached_detector(input_size: 20)
+    assert d1.params == d2.params
+  end
 end

@@ -16,6 +16,7 @@ defmodule NxLiveVizWeb.ImageLive do
      |> assign(:classifying, false)
      |> assign(:preview_url, nil)
      |> assign(:error, nil)
+     |> assign(:task_ref, nil)
      |> allow_upload(:image,
        accept: ~w(.jpg .jpeg .png .webp),
        max_entries: 1,
@@ -79,25 +80,23 @@ defmodule NxLiveVizWeb.ImageLive do
       data_url = "data:image/#{mime_ext};base64,#{Base.encode64(binary)}"
 
       filename = entry.client_name |> String.slice(0, 255) |> String.replace(~r/[[:cntrl:]]/, "")
-      pid = self()
 
-      Task.start(fn ->
-        try do
-          result = ImageClassifier.classify(binary)
-          send(pid, {:classification_result, filename, result})
-        rescue
-          e -> send(pid, {:classification_error, filename, Exception.message(e)})
-        end
-      end)
+      task =
+        Task.async(fn ->
+          {:classification_done, filename, ImageClassifier.classify(binary)}
+        end)
 
-      {:noreply, socket |> assign(:classifying, true) |> assign(:error, nil) |> assign(:preview_url, data_url)}
+      {:noreply, socket |> assign(:classifying, true) |> assign(:error, nil) |> assign(:preview_url, data_url) |> assign(:task_ref, task.ref)}
     else
       {:noreply, socket}
     end
   end
 
   @impl true
-  def handle_info({:classification_result, filename, result}, socket) do
+  def handle_info({ref, {:classification_done, filename, result}}, socket)
+      when ref == socket.assigns.task_ref do
+    Process.demonitor(ref, [:flush])
+
     predictions =
       result.predictions
       |> Enum.map(fn %{label: label, score: score} ->
@@ -115,6 +114,7 @@ defmodule NxLiveVizWeb.ImageLive do
       socket
       |> assign(:predictions, predictions)
       |> assign(:classifying, false)
+      |> assign(:task_ref, nil)
       |> update(:history, fn h -> [history_entry | Enum.take(h, 9)] end)
       |> push_event("chart-data:image-chart", %{
         labels: Enum.map(predictions, & &1.label),
@@ -124,10 +124,12 @@ defmodule NxLiveVizWeb.ImageLive do
     {:noreply, socket}
   end
 
-  def handle_info({:classification_error, _filename, _reason}, socket) do
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, socket)
+      when ref == socket.assigns.task_ref do
     {:noreply,
      assign(socket,
        classifying: false,
+       task_ref: nil,
        error: "Classification failed. Please try a different image."
      )}
   end

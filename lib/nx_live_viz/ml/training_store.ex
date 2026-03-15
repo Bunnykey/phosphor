@@ -37,6 +37,7 @@ defmodule NxLiveViz.ML.TrainingStore do
     {:noreply, s}
   end
 
+  @impl true
   def handle_cast(:clear, s) do
     :ets.delete(@table, :latest)
     {:noreply, s}

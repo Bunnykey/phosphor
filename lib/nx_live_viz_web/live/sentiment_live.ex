@@ -58,6 +58,7 @@ defmodule NxLiveVizWeb.SentimentLive do
         history: history,
         analyzing: false,
         error: nil,
+        task_ref: nil,
         selected_dataset: nil,
         text_datasets: @text_datasets
       )
@@ -90,20 +91,12 @@ defmodule NxLiveVizWeb.SentimentLive do
         {:noreply, assign(socket, error: "Text is too long (max 10,000 characters).")}
 
       true ->
-        socket = assign(socket, analyzing: true, text: text, error: nil)
+        task =
+          Task.async(fn ->
+            {:sentiment_done, text, Sentiment.analyze(text)}
+          end)
 
-        pid = self()
-
-        Task.start(fn ->
-          try do
-            result = Sentiment.analyze(text)
-            send(pid, {:sentiment_result, text, result})
-          rescue
-            e -> send(pid, {:sentiment_error, Exception.message(e)})
-          end
-        end)
-
-        {:noreply, socket}
+        {:noreply, assign(socket, analyzing: true, text: text, error: nil, task_ref: task.ref)}
     end
   end
 
@@ -122,12 +115,10 @@ defmodule NxLiveVizWeb.SentimentLive do
   end
 
   @impl true
-  def handle_info({:sentiment_error, _reason}, socket) do
-    {:noreply, assign(socket, analyzing: false, error: "Analysis failed. Please try again.")}
-  end
+  def handle_info({ref, {:sentiment_done, text, result}}, socket)
+      when ref == socket.assigns.task_ref do
+    Process.demonitor(ref, [:flush])
 
-  @impl true
-  def handle_info({:sentiment_result, text, result}, socket) do
     {label, dominant_score, scores} = map_sentiment(result.predictions)
 
     history_entry = %{
@@ -139,7 +130,7 @@ defmodule NxLiveVizWeb.SentimentLive do
 
     socket =
       socket
-      |> assign(result: scores, analyzing: false)
+      |> assign(result: scores, analyzing: false, task_ref: nil)
       |> update(:history, fn h -> [history_entry | Enum.take(h, 19)] end)
       |> push_event("chart-data:gauge-chart", %{
         positive: scores.positive,
@@ -161,6 +152,11 @@ defmodule NxLiveVizWeb.SentimentLive do
       })
 
     {:noreply, socket}
+  end
+
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, socket)
+      when ref == socket.assigns.task_ref do
+    {:noreply, assign(socket, analyzing: false, task_ref: nil, error: "Analysis failed. Please try again.")}
   end
 
   defp seed_sentiment_data do

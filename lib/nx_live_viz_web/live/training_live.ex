@@ -10,9 +10,14 @@ defmodule NxLiveVizWeb.TrainingLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    if connected?(socket) do
-      Phoenix.PubSub.subscribe(NxLiveViz.PubSub, "training:metrics")
-    end
+    topic =
+      if connected?(socket) do
+        t = "training:metrics:#{System.unique_integer([:positive])}"
+        Phoenix.PubSub.subscribe(NxLiveViz.PubSub, t)
+        t
+      else
+        "training:metrics"
+      end
 
     socket =
       case TrainingStore.load() do
@@ -27,6 +32,7 @@ defmodule NxLiveVizWeb.TrainingLive do
             training: false,
             task_ref: nil,
             task_pid: nil,
+            training_topic: topic,
             epochs: 10,
             learning_rate: 0.001,
             batch_size: 32,
@@ -55,6 +61,7 @@ defmodule NxLiveVizWeb.TrainingLive do
             training: false,
             task_ref: nil,
             task_pid: nil,
+            training_topic: topic,
             epochs: 10,
             learning_rate: 0.001,
             batch_size: 32,
@@ -77,6 +84,7 @@ defmodule NxLiveVizWeb.TrainingLive do
     task =
       Task.async(fn ->
         Trainer.train(
+          topic: socket.assigns.training_topic,
           epochs: socket.assigns.epochs,
           learning_rate: socket.assigns.learning_rate,
           batch_size: socket.assigns.batch_size,
