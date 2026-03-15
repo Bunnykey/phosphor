@@ -8,10 +8,12 @@ defmodule NxLiveViz.ML.SentimentTest do
   end
 
   test "module exports serving/0" do
+    Code.ensure_loaded!(Sentiment)
     assert function_exported?(Sentiment, :serving, 0)
   end
 
   test "module exports analyze/1" do
+    Code.ensure_loaded!(Sentiment)
     assert function_exported?(Sentiment, :analyze, 1)
   end
 
