@@ -3,7 +3,6 @@ defmodule NxLiveVizWeb.AnomalyLive do
 
   alias NxLiveViz.ML.AnomalyDetector
 
-  @window_size 20
   @max_points 200
 
   @source_map %{
@@ -24,9 +23,12 @@ defmodule NxLiveVizWeb.AnomalyLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    window_size = 20
+    threshold = 0.5
+
     detector =
       if connected?(socket) do
-        AnomalyDetector.cached_detector(input_size: @window_size)
+        AnomalyDetector.cached_detector(input_size: window_size)
       else
         nil
       end
@@ -40,7 +42,8 @@ defmodule NxLiveVizWeb.AnomalyLive do
         streaming: false,
         source: :sine,
         sources: @sources,
-        window_size: @window_size,
+        window_size: window_size,
+        threshold: threshold,
         max_points: @max_points,
         anomaly_count: 0
       )
@@ -49,6 +52,16 @@ defmodule NxLiveVizWeb.AnomalyLive do
   end
 
   @impl true
+  def handle_event("update-params", params, socket) do
+    source_key = Map.get(params, "source", to_string(socket.assigns.source))
+    window = safe_int(params["window"], socket.assigns.window_size) |> max(5) |> min(50)
+    threshold = safe_float(params["threshold"], socket.assigns.threshold) |> max(0.1) |> min(2.0)
+
+    source = Map.get(@source_map, source_key, socket.assigns.source)
+
+    {:noreply, assign(socket, source: source, window_size: window, threshold: threshold)}
+  end
+
   def handle_event("start", _params, %{assigns: %{streaming: true}} = socket) do
     {:noreply, socket}
   end
@@ -74,31 +87,22 @@ defmodule NxLiveVizWeb.AnomalyLive do
     {:noreply, assign(socket, streaming: false)}
   end
 
-  def handle_event("select-source", %{"source" => source}, socket) do
-    case Map.fetch(@source_map, source) do
-      {:ok, source_atom} ->
-        {:noreply, assign(socket, source: source_atom)}
-
-      :error ->
-        {:noreply, socket}
-    end
-  end
-
   @impl true
   def handle_info({:sensor_data, _point}, %{assigns: %{streaming: false}} = socket) do
     {:noreply, socket}
   end
 
   def handle_info({:sensor_data, point}, socket) do
+    window_size = socket.assigns.window_size
     points = [point.value | socket.assigns.data_points] |> Enum.take(@max_points)
     anomalies = [point.anomaly | socket.assigns.anomalies] |> Enum.take(@max_points)
 
     detection_result =
-      if length(points) >= @window_size and socket.assigns.detector do
+      if length(points) >= window_size and socket.assigns.detector do
         window =
-          Enum.take(points, @window_size)
+          Enum.take(points, window_size)
           |> Nx.tensor()
-          |> Nx.reshape({1, @window_size})
+          |> Nx.reshape({1, window_size})
 
         AnomalyDetector.predict(socket.assigns.detector, window)
       else
@@ -106,7 +110,7 @@ defmodule NxLiveVizWeb.AnomalyLive do
       end
 
     anomaly_count =
-      if detection_result && detection_result.is_anomaly,
+      if detection_result && detection_result.reconstruction_error > socket.assigns.threshold,
         do: socket.assigns.anomaly_count + 1,
         else: socket.assigns.anomaly_count
 
@@ -129,85 +133,110 @@ defmodule NxLiveVizWeb.AnomalyLive do
   defp chart_labels([]), do: []
   defp chart_labels(list), do: Enum.map(1..length(list), &to_string/1)
 
+  defp safe_int(nil, default), do: default
+
+  defp safe_int(val, default) when is_binary(val) do
+    case Integer.parse(val) do
+      {n, _} -> n
+      :error -> default
+    end
+  end
+
+  defp safe_int(_, default), do: default
+
+  defp safe_float(nil, default), do: default
+
+  defp safe_float(val, default) when is_binary(val) do
+    case Float.parse(val) do
+      {n, _} -> n
+      :error -> default
+    end
+  end
+
+  defp safe_float(_, default), do: default
+
   @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_path={@current_path}>
-    <div class="space-y-4">
+    <div class="space-y-6">
       <div>
-        <h2 class="text-xl font-semibold">Anomaly Detection</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">Autoencoder-based real-time anomaly detection</p>
+        <h1 class="text-lg font-semibold">Anomaly Detection</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Axon autoencoder · Real-time streaming</p>
       </div>
 
-      <%!-- Control Panel --%>
-      <div class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4 space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Control Panel</span>
-          <div class="flex items-center gap-2">
-            <span :if={@streaming} class="inline-flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
-              <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-              Streaming
-            </span>
-            <span class="text-xs text-red-600 dark:text-red-400 font-mono">
-              {@anomaly_count} anomalies
-            </span>
-          </div>
-        </div>
+      <form phx-change="update-params" id="anomaly-params">
+        <div class="grid grid-cols-[auto_1fr_auto] items-center gap-x-4 gap-y-3 text-sm">
+          <label class="text-gray-500 dark:text-gray-400">Source</label>
+          <select
+            name="source"
+            disabled={@streaming}
+            class="rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm px-2 py-1"
+          >
+            <option :for={{key, label} <- @sources} value={key} selected={to_string(@source) == key}>
+              {label}
+            </option>
+          </select>
+          <div></div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
-          <%!-- Source selection --%>
-          <div class="space-y-1.5">
-            <label class="text-xs text-gray-500 dark:text-gray-400">Data Source</label>
-            <div class="flex flex-wrap gap-1.5">
-              <%= for {key, label} <- @sources do %>
-                <button
-                  phx-click="select-source"
-                  phx-value-source={key}
-                  disabled={@streaming}
-                  class={[
-                    "px-3 py-1.5 rounded text-xs font-medium border transition-colors",
-                    if(to_string(@source) == key,
-                      do: "bg-indigo-600 border-indigo-600 text-white dark:bg-indigo-500 dark:border-indigo-500",
-                      else: "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-indigo-400 dark:hover:border-indigo-500"
-                    ),
-                    if(@streaming, do: "opacity-50 cursor-not-allowed", else: "")
-                  ]}
-                >
-                  {label}
-                </button>
-              <% end %>
-            </div>
-          </div>
+          <label class="text-gray-500 dark:text-gray-400">Window</label>
+          <input
+            type="range"
+            name="window"
+            min="5"
+            max="50"
+            value={@window_size}
+            disabled={@streaming}
+          />
+          <span class="font-mono text-sm w-10 text-right">{@window_size}</span>
 
-          <%!-- Action button --%>
-          <div class="flex items-end">
-            <button
-              :if={!@streaming}
-              phx-click="start"
-              class="px-5 py-1.5 bg-green-600 hover:bg-green-700 rounded text-sm font-medium text-white transition-colors"
-            >
-              Start
-            </button>
-            <button
-              :if={@streaming}
-              phx-click="stop"
-              class="px-5 py-1.5 bg-red-600 hover:bg-red-700 rounded text-sm font-medium text-white transition-colors"
-            >
-              Stop
-            </button>
-          </div>
+          <label class="text-gray-500 dark:text-gray-400">Threshold</label>
+          <input
+            type="range"
+            name="threshold"
+            min="0.1"
+            max="2.0"
+            step="0.1"
+            value={@threshold}
+            disabled={@streaming}
+          />
+          <span class="font-mono text-sm w-10 text-right">{@threshold}</span>
         </div>
+      </form>
 
-        <%!-- Parameters --%>
-        <div class="flex gap-4 text-xs text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-800">
-          <span>Window: <span class="font-mono text-gray-700 dark:text-gray-300">{@window_size}</span></span>
-          <span>Threshold: <span class="font-mono text-gray-700 dark:text-gray-300">0.5</span></span>
-          <span>Max points: <span class="font-mono text-gray-700 dark:text-gray-300">{@max_points}</span></span>
-        </div>
+      <div class="flex items-center gap-3">
+        <button
+          :if={!@streaming}
+          phx-click="start"
+          type="button"
+          class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium text-white transition-colors"
+        >
+          Start
+        </button>
+        <button
+          :if={@streaming}
+          phx-click="stop"
+          type="button"
+          class="px-4 py-1.5 bg-red-600 hover:bg-red-700 rounded text-sm font-medium text-white transition-colors"
+        >
+          Stop
+        </button>
+        <span :if={@streaming} class="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block"></span>
+          Streaming
+        </span>
+        <span class="text-sm text-gray-500 dark:text-gray-400 ml-auto">{@anomaly_count} anomalies detected</span>
       </div>
 
-      <%!-- Chart --%>
-      <div id="anomaly-chart" phx-hook="LineChart" phx-update="ignore" data-max-points="200" data-x-label="Time" data-y-label="Signal Value" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-80">
+      <div
+        id="anomaly-chart"
+        phx-hook="LineChart"
+        phx-update="ignore"
+        data-max-points="200"
+        data-x-label="Time"
+        data-y-label="Signal Value"
+        class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 h-80"
+      >
         <canvas></canvas>
       </div>
     </div>

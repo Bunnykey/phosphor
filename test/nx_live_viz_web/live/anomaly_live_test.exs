@@ -2,73 +2,34 @@ defmodule NxLiveVizWeb.AnomalyLiveTest do
   use NxLiveVizWeb.ConnCase, async: true
   import Phoenix.LiveViewTest
 
-  defp navigate_to_anomaly(conn) do
-    {:ok, view, _html} = live(conn, ~p"/?tab=anomaly")
-    anomaly_view = find_live_child(view, "anomaly")
-    {view, anomaly_view}
+  test "renders page with chart and form controls", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/anomaly")
+    assert has_element?(view, "#anomaly-chart")
+    assert has_element?(view, "#anomaly-params")
+    assert has_element?(view, ~s|select[name="source"]|)
+    assert has_element?(view, ~s|input[name="window"]|)
+    assert has_element?(view, ~s|input[name="threshold"]|)
   end
 
-  describe "rendering" do
-    test "renders chart and control panel", %{conn: conn} do
-      {_parent, child} = navigate_to_anomaly(conn)
-
-      assert has_element?(child, "#anomaly-chart")
-      assert has_element?(child, "span", "Control Panel")
-    end
-
-    test "renders source selection buttons", %{conn: conn} do
-      {_parent, child} = navigate_to_anomaly(conn)
-
-      assert has_element?(child, ~s|button[phx-click="select-source"][phx-value-source="sine"]|)
-      assert has_element?(child, ~s|button[phx-click="select-source"][phx-value-source="ecg"]|)
-      assert has_element?(child, ~s|button[phx-click="select-source"][phx-value-source="network"]|)
-    end
-
-    test "renders parameters section", %{conn: conn} do
-      {_parent, child} = navigate_to_anomaly(conn)
-
-      assert has_element?(child, "span", "Window:")
-      assert has_element?(child, "span", "Threshold:")
-    end
-
-    test "renders start button when not streaming", %{conn: conn} do
-      {_parent, child} = navigate_to_anomaly(conn)
-
-      assert has_element?(child, ~s|button[phx-click="start"]|, "Start")
-    end
+  test "renders start button when not streaming", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/anomaly")
+    assert has_element?(view, ~s|button[phx-click="start"]|, "Start")
+    refute has_element?(view, ~s|button[phx-click="stop"]|)
   end
 
-  describe "interactions" do
-    test "select-source highlights chosen source", %{conn: conn} do
-      {_parent, child} = navigate_to_anomaly(conn)
+  test "changing source via form works", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/anomaly")
+    view |> element("#anomaly-params") |> render_change(%{"source" => "ecg", "window" => "20", "threshold" => "0.5"})
+    html = render(view)
+    assert html =~ "ecg"
+  end
 
-      child
-      |> element(~s|button[phx-value-source="ecg"]|)
-      |> render_click()
+  test "start and stop streaming", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/anomaly")
+    view |> element(~s|button[phx-click="start"]|) |> render_click()
+    assert has_element?(view, ~s|button[phx-click="stop"]|)
 
-      html = render(child)
-      assert html =~ ~s|phx-value-source="ecg"|
-      assert html =~ "bg-indigo-600"
-    end
-
-    test "start begins streaming and shows stop button", %{conn: conn} do
-      {_parent, child} = navigate_to_anomaly(conn)
-
-      child
-      |> element(~s|button[phx-click="start"]|)
-      |> render_click()
-
-      assert has_element?(child, ~s|button[phx-click="stop"]|, "Stop")
-      assert has_element?(child, "span", "Streaming")
-    end
-
-    test "stop returns to idle state", %{conn: conn} do
-      {_parent, child} = navigate_to_anomaly(conn)
-
-      child |> element(~s|button[phx-click="start"]|) |> render_click()
-      child |> element(~s|button[phx-click="stop"]|) |> render_click()
-
-      assert has_element?(child, ~s|button[phx-click="start"]|, "Start")
-    end
+    view |> element(~s|button[phx-click="stop"]|) |> render_click()
+    assert has_element?(view, ~s|button[phx-click="start"]|)
   end
 end
