@@ -21,21 +21,19 @@ defmodule NxLiveVizWeb.AnomalyLiveTest do
       assert has_element?(child, "span", "Anomalies")
     end
 
-    test "renders data source selector with options", %{conn: conn} do
+    test "renders source selection buttons", %{conn: conn} do
       {_parent, child} = navigate_to_anomaly(conn)
 
-      assert has_element?(child, ~s|select[name="source"]|)
-      assert has_element?(child, ~s|option[value="sine"]|)
-      assert has_element?(child, ~s|option[value="ecg"]|)
-      assert has_element?(child, ~s|option[value="network"]|)
-      assert has_element?(child, ~s|option[value="crypto"]|)
-      assert has_element?(child, ~s|option[value="system"]|)
+      assert has_element?(child, ~s|button[phx-click="change-source"][phx-value-source="sine"]|)
+      assert has_element?(child, ~s|button[phx-click="change-source"][phx-value-source="ecg"]|)
+      assert has_element?(child, ~s|button[phx-click="change-source"][phx-value-source="network"]|)
+      assert has_element?(child, ~s|button[phx-click="change-source"][phx-value-source="crypto"]|)
+      assert has_element?(child, ~s|button[phx-click="change-source"][phx-value-source="system"]|)
     end
 
     test "renders info bar with hyperparameters", %{conn: conn} do
       {_parent, child} = navigate_to_anomaly(conn)
 
-      assert has_element?(child, "span", "Sine Wave")
       assert has_element?(child, "span", "Window: 20")
       assert has_element?(child, "span", "Threshold: 0.5")
     end
@@ -73,14 +71,16 @@ defmodule NxLiveVizWeb.AnomalyLiveTest do
       assert has_element?(child, ~s|button[phx-click="start"]|, "Start")
     end
 
-    test "change-source event updates source label", %{conn: conn} do
+    test "change-source event highlights selected source", %{conn: conn} do
       {_parent, child} = navigate_to_anomaly(conn)
 
       child
-      |> element(~s|select[name="source"]|)
-      |> render_change(%{"source" => "ecg"})
+      |> element(~s|button[phx-value-source="ecg"]|)
+      |> render_click()
 
-      assert has_element?(child, "span", "ECG Heartbeat")
+      # ECG button should now have the active style (bg-indigo-600)
+      html = render(child)
+      assert html =~ ~s|phx-value-source="ecg" class="px-2.5 py-1 rounded-full font-medium transition-colors bg-indigo-600|
     end
   end
 end
