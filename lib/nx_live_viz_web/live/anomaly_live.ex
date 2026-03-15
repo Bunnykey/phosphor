@@ -59,29 +59,13 @@ defmodule NxLiveVizWeb.AnomalyLive do
     Phoenix.PubSub.subscribe(NxLiveViz.PubSub, "sensor:data")
     NxLiveViz.set_data_source(socket.assigns.source)
 
-    # Push seed data for immediate visual feedback
-    seed = seed_data()
-    points = seed |> Enum.map(& &1.value) |> Enum.reverse()
-    anomalies = seed |> Enum.map(& &1.anomaly) |> Enum.reverse()
-    count = Enum.count(seed, & &1.anomaly)
-
-    display_points = Enum.reverse(points)
-    display_anomalies = Enum.reverse(anomalies)
-    labels = chart_labels(display_points)
-
     socket =
-      socket
-      |> assign(
+      assign(socket,
         streaming: true,
-        data_points: points,
-        anomalies: anomalies,
-        anomaly_count: count
+        data_points: [],
+        anomalies: [],
+        anomaly_count: 0
       )
-      |> push_event("chart-data:anomaly-chart", %{
-        labels: labels,
-        values: display_points,
-        anomalies: display_anomalies
-      })
 
     {:noreply, socket}
   end
