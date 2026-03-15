@@ -3,49 +3,6 @@ defmodule NxLiveVizWeb.SentimentLive do
 
   alias NxLiveViz.ML.Sentiment
 
-  @text_datasets %{
-    movie: %{
-      label: "Movie Reviews",
-      texts: [
-        "This film is a masterpiece. The acting, direction, and cinematography are all top-notch.",
-        "Worst movie I have ever seen. Complete waste of time and money.",
-        "A decent film with some good moments, but the plot felt rushed in the second half.",
-        "The visual effects were stunning but couldn't save the weak storyline.",
-        "An absolute gem! Had me laughing and crying throughout."
-      ]
-    },
-    product: %{
-      label: "Product Reviews",
-      texts: [
-        "이 제품 정말 좋아요! 배송도 빠르고 품질도 최고입니다.",
-        "Terrible quality. Broke after one week of use. Do not recommend.",
-        "가격 대비 괜찮은 제품입니다. 다만 배터리 수명이 좀 짧아요.",
-        "Best purchase I've made this year. Worth every penny.",
-        "Average product, nothing special. Works as described."
-      ]
-    },
-    social: %{
-      label: "Social Media",
-      texts: [
-        "Just had the best coffee of my life! ☕ Highly recommend this place!",
-        "오늘 날씨 진짜 최악이다... 비도 오고 바람도 불고 😩",
-        "Can't believe how fast technology is advancing. What a time to be alive!",
-        "서비스가 너무 불친절했어요. 다시는 안 갈 거예요.",
-        "Another day, another meeting that could have been an email."
-      ]
-    },
-    news: %{
-      label: "News Headlines",
-      texts: [
-        "Global markets surge as inflation fears ease amid positive economic data.",
-        "Major earthquake strikes coastal region, rescue operations underway.",
-        "Tech giant announces record quarterly earnings, stock hits all-time high.",
-        "Scientists discover breakthrough treatment for rare genetic disorder.",
-        "Political tensions rise as trade negotiations stall between major economies."
-      ]
-    }
-  }
-
   @impl true
   def mount(_params, _session, socket) do
     {history, sentiment_scores, sentiment_trend} = seed_sentiment_data()
@@ -59,9 +16,7 @@ defmodule NxLiveVizWeb.SentimentLive do
         history: history,
         analyzing: false,
         error: nil,
-        task_ref: nil,
-        selected_dataset: nil,
-        text_datasets: @text_datasets
+        task_ref: nil
       )
 
     socket =
@@ -103,16 +58,6 @@ defmodule NxLiveVizWeb.SentimentLive do
 
   def handle_event("try-sample", %{"text" => text}, socket) do
     {:noreply, assign(socket, text: String.slice(text, 0, 10_000))}
-  end
-
-  def handle_event("select-dataset", %{"dataset" => ""}, socket) do
-    {:noreply, assign(socket, selected_dataset: nil)}
-  end
-
-  @dataset_keys %{"movie" => :movie, "product" => :product, "social" => :social, "news" => :news}
-
-  def handle_event("select-dataset", %{"dataset" => dataset}, socket) do
-    {:noreply, assign(socket, selected_dataset: @dataset_keys[dataset])}
   end
 
   @impl true
@@ -222,34 +167,23 @@ defmodule NxLiveVizWeb.SentimentLive do
     <Layouts.app flash={@flash} current_path={@current_path}>
     <div class="space-y-4">
       <div>
-        <h2 class="text-xl font-semibold">Sentiment Analysis</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">Multilingual mBERT — enter text to analyze (supports Korean)</p>
-        <div class="flex flex-wrap gap-2 text-xs mt-2">
-          <span class="px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium">
-            mBERT Multilingual
-          </span>
-          <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-            Seq Length: 512
-          </span>
-          <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-            Languages: EN, KO, DE, FR, ES, IT
-          </span>
-        </div>
+        <h1 class="text-lg font-semibold">Sentiment Analysis</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">mBERT multilingual · EN, KO, DE, FR, ES, IT</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="space-y-4">
-          <form phx-submit="analyze" class="space-y-2">
+          <form phx-submit="analyze" id="sentiment-form" class="space-y-2">
             <textarea
               name="text"
               rows="4"
               placeholder="Enter text to analyze sentiment..."
-              class="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-3 text-gray-900 dark:text-white resize-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              class="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-3 text-gray-900 dark:text-white resize-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             >{@text}</textarea>
             <button
               type="submit"
               disabled={@analyzing}
-              class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white disabled:opacity-50"
             >
               {if @analyzing, do: "Analyzing...", else: "Analyze"}
             </button>
@@ -265,7 +199,7 @@ defmodule NxLiveVizWeb.SentimentLive do
               type="button"
               phx-click="try-sample"
               phx-value-text="This is absolutely wonderful, I am so happy with the results!"
-              class="px-3 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700/50 hover:bg-green-200 dark:hover:bg-green-800/50 transition-colors"
+              class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-xs text-gray-700 dark:text-gray-300 hover:border-blue-400 dark:hover:border-blue-400 transition-colors"
             >
               Positive
             </button>
@@ -273,7 +207,7 @@ defmodule NxLiveVizWeb.SentimentLive do
               type="button"
               phx-click="try-sample"
               phx-value-text="I am extremely disappointed and frustrated with this service."
-              class="px-3 py-1 text-xs rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700/50 hover:bg-red-200 dark:hover:bg-red-800/50 transition-colors"
+              class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-xs text-gray-700 dark:text-gray-300 hover:border-blue-400 dark:hover:border-blue-400 transition-colors"
             >
               Negative
             </button>
@@ -281,7 +215,7 @@ defmodule NxLiveVizWeb.SentimentLive do
               type="button"
               phx-click="try-sample"
               phx-value-text="The meeting has been scheduled for tomorrow at 3pm."
-              class="px-3 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800/60 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600/50 hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-colors"
+              class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-xs text-gray-700 dark:text-gray-300 hover:border-blue-400 dark:hover:border-blue-400 transition-colors"
             >
               Neutral
             </button>
@@ -289,32 +223,10 @@ defmodule NxLiveVizWeb.SentimentLive do
               type="button"
               phx-click="try-sample"
               phx-value-text="이 제품은 품질은 좋지만 가격이 너무 비싸요."
-              class="px-3 py-1 text-xs rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-700/50 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 transition-colors"
+              class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-xs text-gray-700 dark:text-gray-300 hover:border-blue-400 dark:hover:border-blue-400 transition-colors"
             >
-              Mixed
+              한국어
             </button>
-          </div>
-
-          <div class="mt-4 space-y-2">
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-gray-500 dark:text-gray-400">Datasets:</span>
-              <select name="dataset" phx-change="select-dataset" class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-                <option value="">Select a dataset...</option>
-                <option :for={{key, ds} <- @text_datasets} value={key}>{ds.label}</option>
-              </select>
-            </div>
-
-            <div :if={@selected_dataset} class="max-h-32 overflow-y-auto space-y-1">
-              <button
-                :for={text <- @text_datasets[@selected_dataset].texts}
-                type="button"
-                phx-click="try-sample"
-                phx-value-text={text}
-                class="block w-full text-left text-xs px-3 py-1.5 rounded bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 truncate transition-colors"
-              >
-                {String.slice(text, 0, 80)}{if String.length(text) > 80, do: "...", else: ""}
-              </button>
-            </div>
           </div>
 
           <div :if={@result} class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 space-y-3">
@@ -324,7 +236,7 @@ defmodule NxLiveVizWeb.SentimentLive do
                 <span class="font-mono">{Float.round(@result.positive * 100, 1)}%</span>
               </div>
               <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div class="bg-green-500 h-2 rounded-full transition-all duration-500" style={"width: #{Float.round(@result.positive * 100, 1)}%"}></div>
+                <div class="bg-green-500 h-2 rounded-full transition-all duration-300" style={"width: #{Float.round(@result.positive * 100, 1)}%"}></div>
               </div>
             </div>
             <div class="space-y-1">
@@ -333,7 +245,7 @@ defmodule NxLiveVizWeb.SentimentLive do
                 <span class="font-mono">{Float.round(@result.negative * 100, 1)}%</span>
               </div>
               <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div class="bg-red-500 h-2 rounded-full transition-all duration-500" style={"width: #{Float.round(@result.negative * 100, 1)}%"}></div>
+                <div class="bg-red-500 h-2 rounded-full transition-all duration-300" style={"width: #{Float.round(@result.negative * 100, 1)}%"}></div>
               </div>
             </div>
             <div class="space-y-1">
@@ -342,7 +254,7 @@ defmodule NxLiveVizWeb.SentimentLive do
                 <span class="font-mono">{Float.round(@result.neutral * 100, 1)}%</span>
               </div>
               <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div class="bg-gray-400 h-2 rounded-full transition-all duration-500" style={"width: #{Float.round(@result.neutral * 100, 1)}%"}></div>
+                <div class="bg-gray-400 h-2 rounded-full transition-all duration-300" style={"width: #{Float.round(@result.neutral * 100, 1)}%"}></div>
               </div>
             </div>
           </div>
