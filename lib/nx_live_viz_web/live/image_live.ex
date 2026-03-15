@@ -9,6 +9,7 @@ defmodule NxLiveVizWeb.ImageLive do
 
     {:ok,
      socket
+     |> assign(:current_path, "/image")
      |> assign(:predictions, seed_predictions)
      |> assign(:history, seed_history)
      |> assign(:result_label, seed_label)
@@ -142,37 +143,28 @@ defmodule NxLiveVizWeb.ImageLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-4">
+    <Layouts.app flash={@flash} current_path={@current_path}>
+    <div class="space-y-6">
       <div>
-        <h2 class="text-xl font-semibold">Image Classification</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">ResNet-50 — drag & drop an image</p>
+        <h1 class="text-lg font-semibold">Image Classification</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">ResNet-50 · Bumblebee</p>
       </div>
 
-      <div class="flex flex-wrap gap-2 text-xs">
-        <span class="px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium">
-          ResNet-50
-        </span>
-        <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-          Top-K: 5
-        </span>
-        <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-          Batch: 4
-        </span>
-        <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-          Max: 10MB
-        </span>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <%!-- Left column: upload + results --%>
         <div class="space-y-4">
-          <form id="upload-form" phx-change="validate" class="relative bg-gray-100 dark:bg-gray-900 rounded-lg p-6 border-2 border-dashed border-gray-300 dark:border-gray-700 text-center cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors"
-                phx-drop-target={@uploads.image.ref}>
+          <form id="upload-form" phx-change="validate"
+                phx-drop-target={@uploads.image.ref}
+                class="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center
+                       hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
             <label for={@uploads.image.ref} class="block cursor-pointer">
               <.live_file_input upload={@uploads.image} class="sr-only" />
               <div class="flex flex-col items-center gap-2">
-                <.icon name="hero-arrow-up-tray" class="w-8 h-8 text-gray-400 dark:text-gray-500" />
-                <p class="text-gray-500 dark:text-gray-400 text-sm">Drop image here or <span class="text-indigo-600 dark:text-indigo-400 font-medium">browse</span></p>
-                <p class="text-xs text-gray-400 dark:text-gray-500">JPG, PNG, WebP up to 10MB</p>
+                <.icon name="hero-arrow-up-tray" class="w-6 h-6 text-gray-400 dark:text-gray-500" />
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  Drop image here or <span class="text-blue-600 dark:text-blue-400 font-medium">browse</span>
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">JPG, PNG, WebP up to 10 MB</p>
               </div>
             </label>
 
@@ -182,40 +174,46 @@ defmodule NxLiveVizWeb.ImageLive do
             </div>
           </form>
 
-          <div :if={@classifying} class="text-center text-indigo-600 dark:text-indigo-400">
+          <p :if={@classifying} class="text-center text-sm text-blue-600 dark:text-blue-400">
             Classifying...
-          </div>
+          </p>
 
-          <div :if={@error} class="mt-4 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-red-600 dark:text-red-400 text-sm">
+          <div :if={@error} class="p-3 border border-red-200 dark:border-red-500/20 rounded-lg text-red-600 dark:text-red-400 text-sm">
             {@error}
           </div>
 
-          <div :if={@predictions != []} class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4">
+          <div :if={@preview_url} class="flex justify-center">
+            <img src={@preview_url} class="max-w-xs rounded-lg" />
+          </div>
+
+          <div :if={@predictions != []} class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <h3 class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Results</h3>
-            <img :if={@preview_url} src={@preview_url} class="max-w-xs rounded-lg mb-4" />
             <div :for={pred <- @predictions} class="flex justify-between text-sm py-1">
               <span class="text-gray-700 dark:text-gray-300 truncate max-w-[200px]">{pred.label}</span>
-              <span class="text-indigo-600 dark:text-indigo-400 font-mono">{Float.round(pred.score * 100, 1)}%</span>
+              <span class="font-mono text-gray-900 dark:text-gray-100">{Float.round(pred.score * 100, 1)}%</span>
             </div>
           </div>
         </div>
 
+        <%!-- Right column: chart + history --%>
         <div class="space-y-4">
-          <div id="image-chart" phx-hook="BarChart" phx-update="ignore" data-label="Confidence" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
+          <div id="image-chart" phx-hook="BarChart" phx-update="ignore" data-label="Confidence"
+               class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 h-64">
             <canvas></canvas>
           </div>
 
-          <div :if={@history != []} class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4">
+          <div :if={@history != []} class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <h3 class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Recent</h3>
             <div :for={h <- @history} class="flex justify-between text-xs py-1 text-gray-500 dark:text-gray-400">
               <span class="truncate max-w-[150px]">{h.filename}</span>
               <span>{h.top_label}</span>
-              <span class="text-indigo-600 dark:text-indigo-400">{Float.round(h.score * 100, 1)}%</span>
+              <span class="font-mono">{Float.round(h.score * 100, 1)}%</span>
             </div>
           </div>
         </div>
       </div>
     </div>
+    </Layouts.app>
     """
   end
 end
