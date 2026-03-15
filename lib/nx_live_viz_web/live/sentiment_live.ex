@@ -351,7 +351,7 @@ defmodule NxLiveVizWeb.SentimentLive do
         </div>
 
         <div class="space-y-4">
-          <div id="sentiment-trend" phx-hook="LineChart" phx-update="ignore" data-label="Sentiment Score" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
+          <div id="sentiment-trend" phx-hook="LineChart" phx-update="ignore" data-label="Sentiment Score" data-x-label="Analysis #" data-y-label="Score (+pos / -neg)" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
             <canvas></canvas>
           </div>
 

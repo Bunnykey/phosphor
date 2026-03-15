@@ -46,7 +46,7 @@ defmodule NxLiveVizWeb.AnomalyLiveTest do
       {_parent, child} = navigate_to_anomaly(conn)
 
       child
-      |> element(~s|select[name="source"]|)
+      |> element(~s|form[phx-change="change-source"]|)
       |> render_change(%{"source" => "crypto"})
 
       assert has_element?(child, "#anomaly-chart")
@@ -56,7 +56,7 @@ defmodule NxLiveVizWeb.AnomalyLiveTest do
       {_parent, child} = navigate_to_anomaly(conn)
 
       child
-      |> element(~s|select[name="source"]|)
+      |> element(~s|form[phx-change="change-source"]|)
       |> render_change(%{"source" => "sine"})
 
       assert has_element?(child, "#anomaly-chart")

@@ -96,13 +96,17 @@ defmodule NxLiveVizWeb.AnomalyLive do
         do: socket.assigns.anomaly_count + 1,
         else: socket.assigns.anomaly_count
 
+    display_points = Enum.reverse(points)
+    display_anomalies = Enum.reverse(anomalies)
+    labels = chart_labels(display_points)
+
     socket =
       socket
       |> assign(data_points: points, anomalies: anomalies, anomaly_count: anomaly_count)
-      |> push_event("chart-append:anomaly-chart", %{
-        label: to_string(length(points)),
-        value: point.value,
-        anomaly: point.anomaly
+      |> push_event("chart-data:anomaly-chart", %{
+        labels: labels,
+        values: display_points,
+        anomalies: display_anomalies
       })
 
     {:noreply, socket}
@@ -167,17 +171,19 @@ defmodule NxLiveVizWeb.AnomalyLive do
           <span class="text-sm text-red-600 dark:text-red-400">
             Anomalies detected: {@anomaly_count}
           </span>
-          <select
-            phx-change="change-source"
-            name="source"
-            class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-3 py-1 text-sm text-gray-900 dark:text-gray-100"
-          >
-            <option value="sine" selected={@source == :sine}>Sine Wave</option>
-            <option value="ecg" selected={@source == :ecg}>ECG Heartbeat</option>
-            <option value="network" selected={@source == :network}>Network Traffic</option>
-            <option value="crypto" selected={@source == :crypto}>Crypto API (BTC)</option>
-            <option value="system" selected={@source == :system}>System Metrics</option>
-          </select>
+          <form phx-change="change-source">
+            <select
+              name="source"
+              value={to_string(@source)}
+              class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-3 py-1 text-sm text-gray-900 dark:text-gray-100"
+            >
+              <option value="sine">Sine Wave</option>
+              <option value="ecg">ECG Heartbeat</option>
+              <option value="network">Network Traffic</option>
+              <option value="crypto">Crypto API (BTC)</option>
+              <option value="system">System Metrics</option>
+            </select>
+          </form>
         </div>
       </div>
 
@@ -196,7 +202,7 @@ defmodule NxLiveVizWeb.AnomalyLive do
         </span>
       </div>
 
-      <div id="anomaly-chart" phx-hook="LineChart" phx-update="ignore" data-max-points="200" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-80">
+      <div id="anomaly-chart" phx-hook="LineChart" phx-update="ignore" data-max-points="200" data-x-label="Time" data-y-label="Signal Value" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-80">
         <canvas></canvas>
       </div>
     </div>

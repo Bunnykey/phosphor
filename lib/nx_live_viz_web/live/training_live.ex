@@ -408,15 +408,30 @@ defmodule NxLiveVizWeb.TrainingLive do
         </div>
       </form>
 
-      <div class="text-sm text-gray-500 dark:text-gray-400">
-        Epoch: {@current_epoch} | Iteration: {@current_iteration}
+      <div class="flex items-center gap-4 text-sm">
+        <span class="text-gray-500 dark:text-gray-400">
+          Epoch: <span class="font-mono text-gray-700 dark:text-gray-200">{@current_epoch}</span>
+        </span>
+        <span class="text-gray-500 dark:text-gray-400">
+          Iteration: <span class="font-mono text-gray-700 dark:text-gray-200">{@current_iteration}</span>
+        </span>
+        <span :if={@current_loss} class="text-gray-500 dark:text-gray-400">
+          Loss: <span class="font-mono text-orange-600 dark:text-orange-400">{Float.round(@current_loss, 4)}</span>
+        </span>
+        <span :if={@current_accuracy} class="text-gray-500 dark:text-gray-400">
+          Accuracy: <span class="font-mono text-green-600 dark:text-green-400">{Float.round(@current_accuracy * 100, 1)}%</span>
+        </span>
+        <span :if={@training} class="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
+          <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+          Training...
+        </span>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div id="loss-chart" phx-hook="LineChart" phx-update="ignore" data-label="Loss" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
+        <div id="loss-chart" phx-hook="LineChart" phx-update="ignore" data-label="Loss" data-x-label="Iteration" data-y-label="Loss" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
           <canvas></canvas>
         </div>
-        <div id="accuracy-chart" phx-hook="LineChart" phx-update="ignore" data-label="Accuracy" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
+        <div id="accuracy-chart" phx-hook="LineChart" phx-update="ignore" data-label="Accuracy" data-x-label="Iteration" data-y-label="Accuracy" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
           <canvas></canvas>
         </div>
       </div>

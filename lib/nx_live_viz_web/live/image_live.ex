@@ -165,10 +165,16 @@ defmodule NxLiveVizWeb.ImageLive do
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="space-y-4">
-          <form phx-change="validate" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-6 border-2 border-dashed border-gray-300 dark:border-gray-700 text-center"
+          <form id="upload-form" phx-change="validate" class="relative bg-gray-100 dark:bg-gray-900 rounded-lg p-6 border-2 border-dashed border-gray-300 dark:border-gray-700 text-center cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors"
                 phx-drop-target={@uploads.image.ref}>
-            <.live_file_input upload={@uploads.image} class="hidden" />
-            <p class="text-gray-500 dark:text-gray-400">Drop image here or click to upload</p>
+            <label for={@uploads.image.ref} class="block cursor-pointer">
+              <.live_file_input upload={@uploads.image} class="sr-only" />
+              <div class="flex flex-col items-center gap-2">
+                <.icon name="hero-arrow-up-tray" class="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                <p class="text-gray-500 dark:text-gray-400 text-sm">Drop image here or <span class="text-indigo-600 dark:text-indigo-400 font-medium">browse</span></p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">JPG, PNG, WebP up to 10MB</p>
+              </div>
+            </label>
 
             <div :for={entry <- @uploads.image.entries} class="mt-4">
               <.live_img_preview entry={entry} class="mx-auto max-h-48 rounded" />

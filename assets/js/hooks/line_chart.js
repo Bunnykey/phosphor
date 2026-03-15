@@ -52,8 +52,25 @@ const LineChart = {
         maintainAspectRatio: false,
         animation: { duration: 0 },
         scales: {
-          x: axisConfig({ display: true }),
-          y: axisConfig({ display: true, beginAtZero: false }),
+          x: axisConfig({
+            display: true,
+            title: this.el.dataset.xLabel ? {
+              display: true,
+              text: this.el.dataset.xLabel,
+              color: '#9ca3af',
+              font: { size: 11 },
+            } : { display: false },
+          }),
+          y: axisConfig({
+            display: true,
+            beginAtZero: false,
+            title: this.el.dataset.yLabel ? {
+              display: true,
+              text: this.el.dataset.yLabel,
+              color: '#9ca3af',
+              font: { size: 11 },
+            } : { display: false },
+          }),
         },
         plugins: {
           legend: legendConfig(),

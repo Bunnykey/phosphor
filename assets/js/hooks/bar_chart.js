@@ -29,8 +29,8 @@ const BarChart = {
         maintainAspectRatio: false,
         animation: { duration: 300 },
         scales: {
-          x: axisConfig({ beginAtZero: true, max: 1.0 }),
-          y: axisConfig(),
+          x: axisConfig({ beginAtZero: true, max: 1.0, title: { display: true, text: "Confidence", color: '#9ca3af', font: { size: 11 } } }),
+          y: axisConfig({ title: { display: true, text: "Class", color: '#9ca3af', font: { size: 11 } } }),
         },
         plugins: {
           legend: legendConfig(),

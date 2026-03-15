@@ -24,9 +24,14 @@ defmodule NxLiveVizWeb.DashboardLive do
 
     ~H"""
     <div class="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white">
-      <header class="border-b border-gray-200 dark:border-gray-800 px-6 py-4">
-        <h1 class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">NxLiveViz</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400">Real-time ML Dashboard</p>
+      <header class="border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center">
+          <span class="text-white font-bold text-sm">P</span>
+        </div>
+        <div>
+          <h1 class="text-xl font-semibold tracking-tight text-gray-900 dark:text-white">Phosphor</h1>
+          <p class="text-xs text-gray-500 dark:text-gray-400">Real-time ML Visualization Dashboard</p>
+        </div>
       </header>
 
       <nav class="flex gap-1 px-6 pt-4">
