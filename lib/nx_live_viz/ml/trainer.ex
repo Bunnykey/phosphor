@@ -100,12 +100,17 @@ defmodule NxLiveViz.ML.Trainer do
 
       # Broadcast weight histogram every 10 iterations
       if rem(state.iteration, 10) == 0 do
+        model_state = state.step_state.model_state
         first_layer_weights =
-          state.step_state.model_state
-          |> get_in(["dense_0", "kernel"])
+          case model_state do
+            %Axon.ModelState{data: data} -> data["dense_0"]["kernel"]
+            %{} -> model_state["dense_0"]["kernel"]
+          end
 
-        histogram = compute_histogram(first_layer_weights)
-        Phoenix.PubSub.broadcast(NxLiveViz.PubSub, topic, {:weight_histogram, histogram})
+        if first_layer_weights do
+          histogram = compute_histogram(first_layer_weights)
+          Phoenix.PubSub.broadcast(NxLiveViz.PubSub, topic, {:weight_histogram, histogram})
+        end
       end
 
       {:continue, state}
