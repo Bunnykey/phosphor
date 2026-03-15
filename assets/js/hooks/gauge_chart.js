@@ -2,7 +2,11 @@ import Chart from "chart.js/auto"
 
 const GaugeChart = {
   mounted() {
-    const ctx = this.el.querySelector("canvas").getContext("2d")
+    const canvas = this.el.querySelector("canvas")
+    canvas.setAttribute("role", "img")
+    canvas.setAttribute("aria-label", this.el.dataset.ariaLabel || this.el.getAttribute("aria-label") || "Gauge chart showing sentiment distribution")
+
+    const ctx = canvas.getContext("2d")
     this.chart = new Chart(ctx, {
       type: "doughnut",
       data: {
@@ -24,7 +28,16 @@ const GaugeChart = {
         circumference: 180,
         cutout: "75%",
         plugins: {
-          legend: { display: true, position: "bottom" },
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              color: '#9ca3af',
+              font: { size: 11 },
+              boxWidth: 12,
+              padding: 8,
+            },
+          },
         },
       },
     })

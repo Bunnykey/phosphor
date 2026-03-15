@@ -2,6 +2,7 @@ defmodule NxLiveVizWeb.TrainingLive do
   use NxLiveVizWeb, :live_view
 
   alias NxLiveViz.ML.Trainer
+  alias NxLiveViz.ML.TrainingStore
 
   @impl true
   def mount(_params, _session, socket) do
@@ -9,20 +10,67 @@ defmodule NxLiveVizWeb.TrainingLive do
       Phoenix.PubSub.subscribe(NxLiveViz.PubSub, "training:metrics")
     end
 
-    {:ok,
-     assign(socket,
-       training: false,
-       task_ref: nil,
-       task_pid: nil,
-       epochs: 10,
-       learning_rate: 0.001,
-       batch_size: 32,
-       losses: [],
-       accuracies: [],
-       current_epoch: 0,
-       current_iteration: 0,
-       histogram: nil
-     )}
+    socket =
+      case TrainingStore.load() do
+        {:ok, saved} ->
+          # Restore persisted training state
+          display_losses = Enum.reverse(saved.loss_history)
+          display_accuracies = Enum.reverse(saved.accuracy_history)
+          labels = Enum.map(1..length(saved.loss_history), &to_string/1)
+
+          socket
+          |> assign(
+            training: false,
+            task_ref: nil,
+            task_pid: nil,
+            epochs: 10,
+            learning_rate: 0.001,
+            batch_size: 32,
+            losses: saved.loss_history,
+            accuracies: saved.accuracy_history,
+            current_epoch: saved.current_epoch,
+            current_iteration: saved.current_iteration,
+            current_loss: saved.current_loss,
+            current_accuracy: saved.current_accuracy,
+            histogram: saved.histogram,
+            status: saved.status
+          )
+          |> push_event("chart-data:loss-chart", %{labels: labels, values: display_losses})
+          |> push_event("chart-data:accuracy-chart", %{labels: labels, values: display_accuracies})
+          |> then(fn s ->
+            if saved.histogram, do: push_event(s, "chart-data:weight-histogram", saved.histogram), else: s
+          end)
+
+        :error ->
+          # No persisted state — use seed data
+          {seed_losses, seed_accuracies, seed_histogram} = seed_training_data()
+          reversed_losses = Enum.reverse(seed_losses)
+          reversed_accuracies = Enum.reverse(seed_accuracies)
+          labels = Enum.map(1..length(seed_losses), &to_string/1)
+
+          socket
+          |> assign(
+            training: false,
+            task_ref: nil,
+            task_pid: nil,
+            epochs: 10,
+            learning_rate: 0.001,
+            batch_size: 32,
+            losses: reversed_losses,
+            accuracies: reversed_accuracies,
+            current_epoch: 5,
+            current_iteration: 50,
+            current_loss: 0.15,
+            current_accuracy: 0.95,
+            histogram: seed_histogram,
+            status: :completed
+          )
+          |> push_event("chart-data:loss-chart", %{labels: labels, values: seed_losses})
+          |> push_event("chart-data:accuracy-chart", %{labels: labels, values: seed_accuracies})
+          |> push_event("chart-data:weight-histogram", seed_histogram)
+      end
+
+    {:ok, socket}
   end
 
   @impl true
@@ -36,7 +84,20 @@ defmodule NxLiveVizWeb.TrainingLive do
         )
       end)
 
-    {:noreply, assign(socket, training: true, task_ref: task.ref, task_pid: task.pid, losses: [], accuracies: [])}
+    {:noreply,
+     assign(socket,
+       training: true,
+       task_ref: task.ref,
+       task_pid: task.pid,
+       losses: [],
+       accuracies: [],
+       current_epoch: 0,
+       current_iteration: 0,
+       current_loss: nil,
+       current_accuracy: nil,
+       histogram: nil,
+       status: :training
+     )}
   end
 
   def handle_event("stop", _params, socket) do
@@ -49,15 +110,31 @@ defmodule NxLiveVizWeb.TrainingLive do
   end
 
   def handle_event("reset", _params, socket) do
-    {:noreply,
-     assign(socket,
-       training: false,
-       losses: [],
-       accuracies: [],
-       current_epoch: 0,
-       current_iteration: 0,
-       histogram: nil
-     )}
+    TrainingStore.clear()
+
+    {seed_losses, seed_accuracies, seed_histogram} = seed_training_data()
+    reversed_losses = Enum.reverse(seed_losses)
+    reversed_accuracies = Enum.reverse(seed_accuracies)
+    labels = Enum.map(1..length(seed_losses), &to_string/1)
+
+    socket =
+      socket
+      |> assign(
+        training: false,
+        losses: reversed_losses,
+        accuracies: reversed_accuracies,
+        current_epoch: 5,
+        current_iteration: 50,
+        current_loss: 0.15,
+        current_accuracy: 0.95,
+        histogram: seed_histogram,
+        status: :completed
+      )
+      |> push_event("chart-data:loss-chart", %{labels: labels, values: seed_losses})
+      |> push_event("chart-data:accuracy-chart", %{labels: labels, values: seed_accuracies})
+      |> push_event("chart-data:weight-histogram", seed_histogram)
+
+    {:noreply, socket}
   end
 
   def handle_event("update-params", params, socket) do
@@ -82,7 +159,9 @@ defmodule NxLiveVizWeb.TrainingLive do
         losses: losses,
         accuracies: accuracies,
         current_epoch: metrics.epoch,
-        current_iteration: metrics.iteration
+        current_iteration: metrics.iteration,
+        current_loss: metrics.loss,
+        current_accuracy: metrics.accuracy
       )
       |> push_event("chart-data:loss-chart", %{
         labels: labels,
@@ -93,6 +172,17 @@ defmodule NxLiveVizWeb.TrainingLive do
         values: display_accuracies
       })
 
+    TrainingStore.save(%{
+      loss_history: socket.assigns.losses,
+      accuracy_history: socket.assigns.accuracies,
+      histogram: socket.assigns.histogram,
+      current_epoch: socket.assigns.current_epoch,
+      current_iteration: socket.assigns.current_iteration,
+      current_loss: socket.assigns.current_loss,
+      current_accuracy: socket.assigns.current_accuracy,
+      status: :training
+    })
+
     {:noreply, socket}
   end
 
@@ -102,12 +192,37 @@ defmodule NxLiveVizWeb.TrainingLive do
       |> assign(:histogram, histogram)
       |> push_event("chart-data:weight-histogram", histogram)
 
+    TrainingStore.save(%{
+      loss_history: socket.assigns.losses,
+      accuracy_history: socket.assigns.accuracies,
+      histogram: socket.assigns.histogram,
+      current_epoch: socket.assigns.current_epoch,
+      current_iteration: socket.assigns.current_iteration,
+      current_loss: socket.assigns.current_loss,
+      current_accuracy: socket.assigns.current_accuracy,
+      status: socket.assigns.status
+    })
+
     {:noreply, socket}
   end
 
   def handle_info({ref, _result}, socket) when ref == socket.assigns.task_ref do
     Process.demonitor(ref, [:flush])
-    {:noreply, assign(socket, training: false, task_ref: nil, task_pid: nil)}
+
+    socket = assign(socket, training: false, task_ref: nil, task_pid: nil, status: :completed)
+
+    TrainingStore.save(%{
+      loss_history: socket.assigns.losses,
+      accuracy_history: socket.assigns.accuracies,
+      histogram: socket.assigns.histogram,
+      current_epoch: socket.assigns.current_epoch,
+      current_iteration: socket.assigns.current_iteration,
+      current_loss: socket.assigns.current_loss,
+      current_accuracy: socket.assigns.current_accuracy,
+      status: :completed
+    })
+
+    {:noreply, socket}
   end
 
   def handle_info({:DOWN, ref, :process, _pid, _reason}, socket)
@@ -117,6 +232,62 @@ defmodule NxLiveVizWeb.TrainingLive do
 
   def handle_info(_msg, socket), do: {:noreply, socket}
 
+  # Generates realistic demo data for a completed 5-epoch, 50-iteration training run.
+  # Loss follows an exponential decay from ~2.3 to ~0.15 with noise.
+  # Accuracy follows a sigmoid-like curve from ~0.10 to ~0.95.
+  # Histogram is a bell curve centered around 0 with 30 bins.
+  defp seed_training_data do
+    # Use a fixed seed for deterministic demo data
+    :rand.seed(:exsss, {42, 137, 256})
+
+    num_points = 25
+
+    # Loss: exponential decay from ~2.3 to ~0.15 with some noise
+    loss_history =
+      for i <- 0..(num_points - 1) do
+        t = i / (num_points - 1)
+        base = 2.3 * :math.exp(-3.5 * t) + 0.15
+        noise = (:rand.uniform() - 0.5) * 0.08 * (1 - t * 0.7)
+        Float.round(max(base + noise, 0.05), 4)
+      end
+
+    # Accuracy: sigmoid-like curve from ~0.10 to ~0.95
+    accuracy_history =
+      for i <- 0..(num_points - 1) do
+        t = i / (num_points - 1)
+        base = 0.10 + 0.85 / (1.0 + :math.exp(-8.0 * (t - 0.35)))
+        noise = (:rand.uniform() - 0.5) * 0.03 * (1 - t * 0.5)
+        Float.round(min(max(base + noise, 0.05), 0.99), 4)
+      end
+
+    # Weight histogram: bell curve centered around 0 with 30 bins
+    num_bins = 30
+    min_val = -0.3
+    max_val = 0.3
+    bin_width = (max_val - min_val) / num_bins
+    sigma = 0.08
+
+    bins =
+      for i <- 0..(num_bins - 1) do
+        Float.round(min_val + i * bin_width, 3) |> to_string()
+      end
+
+    counts =
+      for i <- 0..(num_bins - 1) do
+        center = min_val + (i + 0.5) * bin_width
+        # Gaussian bell curve
+        gaussian = :math.exp(-(center * center) / (2.0 * sigma * sigma))
+        # Scale to reasonable counts and add minor noise
+        base_count = round(gaussian * 3500)
+        noise = round((:rand.uniform() - 0.5) * 80)
+        max(base_count + noise, 0)
+      end
+
+    histogram = %{bins: bins, counts: counts}
+
+    {loss_history, accuracy_history, histogram}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -124,26 +295,26 @@ defmodule NxLiveVizWeb.TrainingLive do
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-xl font-semibold">Training Visualization</h2>
-          <p class="text-sm text-gray-400">MNIST classifier — watch the model learn</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">MNIST classifier — watch the model learn</p>
         </div>
         <div class="flex gap-2">
           <button
             :if={!@training}
             phx-click="start"
-            class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium"
+            class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium text-white"
           >
             Start Training
           </button>
           <button
             :if={@training}
             phx-click="stop"
-            class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium"
+            class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium text-white"
           >
             Stop
           </button>
           <button
             phx-click="reset"
-            class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium"
+            class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm font-medium"
           >
             Reset
           </button>
@@ -151,50 +322,50 @@ defmodule NxLiveVizWeb.TrainingLive do
       </div>
 
       <!-- Hyperparameter controls -->
-      <form phx-change="update-params" class="flex gap-4 bg-gray-900 rounded-lg p-4">
+      <form phx-change="update-params" class="flex gap-4 bg-gray-100 dark:bg-gray-900 rounded-lg p-4">
         <div class="flex-1">
-          <label class="block text-xs text-gray-400 mb-1">Epochs</label>
+          <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Epochs</label>
           <input
             type="range" name="epochs" min="1" max="50" value={@epochs}
             disabled={@training}
             class="w-full"
           />
-          <span class="text-xs text-gray-300">{@epochs}</span>
+          <span class="text-xs text-gray-600 dark:text-gray-300">{@epochs}</span>
         </div>
         <div class="flex-1">
-          <label class="block text-xs text-gray-400 mb-1">Learning Rate</label>
+          <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Learning Rate</label>
           <input
             type="range" name="learning_rate" min="0.0001" max="0.01" step="0.0001" value={@learning_rate}
             disabled={@training}
             class="w-full"
           />
-          <span class="text-xs text-gray-300">{@learning_rate}</span>
+          <span class="text-xs text-gray-600 dark:text-gray-300">{@learning_rate}</span>
         </div>
         <div class="flex-1">
-          <label class="block text-xs text-gray-400 mb-1">Batch Size</label>
+          <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Batch Size</label>
           <input
             type="range" name="batch_size" min="8" max="128" step="8" value={@batch_size}
             disabled={@training}
             class="w-full"
           />
-          <span class="text-xs text-gray-300">{@batch_size}</span>
+          <span class="text-xs text-gray-600 dark:text-gray-300">{@batch_size}</span>
         </div>
       </form>
 
-      <div class="text-sm text-gray-400">
+      <div class="text-sm text-gray-500 dark:text-gray-400">
         Epoch: {@current_epoch} | Iteration: {@current_iteration}
       </div>
 
       <div class="grid grid-cols-2 gap-4">
-        <div id="loss-chart" phx-hook="LineChart" data-label="Loss" class="bg-gray-900 rounded-lg p-4 h-64">
+        <div id="loss-chart" phx-hook="LineChart" data-label="Loss" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
           <canvas></canvas>
         </div>
-        <div id="accuracy-chart" phx-hook="LineChart" data-label="Accuracy" class="bg-gray-900 rounded-lg p-4 h-64">
+        <div id="accuracy-chart" phx-hook="LineChart" data-label="Accuracy" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
           <canvas></canvas>
         </div>
       </div>
 
-      <div id="weight-histogram" phx-hook="HistogramChart" class="bg-gray-900 rounded-lg p-4 h-64">
+      <div id="weight-histogram" phx-hook="HistogramChart" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
         <canvas></canvas>
       </div>
     </div>

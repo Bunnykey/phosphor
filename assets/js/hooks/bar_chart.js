@@ -2,13 +2,17 @@ import Chart from "chart.js/auto"
 
 const BarChart = {
   mounted() {
-    const ctx = this.el.querySelector("canvas").getContext("2d")
+    const canvas = this.el.querySelector("canvas")
+    canvas.setAttribute("role", "img")
+    canvas.setAttribute("aria-label", this.el.dataset.ariaLabel || this.el.getAttribute("aria-label") || "Bar chart")
+
+    const ctx = canvas.getContext("2d")
     this.chart = new Chart(ctx, {
       type: "bar",
       data: {
         labels: [],
         datasets: [{
-          label: this.el.dataset.label || "Score",
+          label: this.el.dataset.label || "Top-5 Predictions",
           data: [],
           backgroundColor: [
             "rgba(99, 102, 241, 0.8)",
@@ -26,10 +30,28 @@ const BarChart = {
         maintainAspectRatio: false,
         animation: { duration: 300 },
         scales: {
-          x: { beginAtZero: true, max: 1.0 },
+          x: {
+            beginAtZero: true,
+            max: 1.0,
+            ticks: { color: '#9ca3af' },
+            grid: { color: 'rgba(75, 85, 99, 0.3)' },
+          },
+          y: {
+            ticks: { color: '#9ca3af' },
+            grid: { color: 'rgba(75, 85, 99, 0.3)' },
+          },
         },
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              color: '#9ca3af',
+              font: { size: 11 },
+              boxWidth: 12,
+              padding: 8,
+            },
+          },
         },
       },
     })

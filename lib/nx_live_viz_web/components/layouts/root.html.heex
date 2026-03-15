@@ -13,19 +13,18 @@
     <script>
       (() => {
         const setTheme = (theme) => {
+          const html = document.documentElement;
+          html.classList.remove("dark", "light");
           if (theme === "system") {
             localStorage.removeItem("phx:theme");
-            document.documentElement.removeAttribute("data-theme");
           } else {
             localStorage.setItem("phx:theme", theme);
-            document.documentElement.setAttribute("data-theme", theme);
+            html.classList.add(theme);
           }
         };
-        if (!document.documentElement.hasAttribute("data-theme")) {
-          setTheme(localStorage.getItem("phx:theme") || "system");
-        }
+        const saved = localStorage.getItem("phx:theme");
+        if (saved) { setTheme(saved); }
         window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
-        
         window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
       })();
     </script>

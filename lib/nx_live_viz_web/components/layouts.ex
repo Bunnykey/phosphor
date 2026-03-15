@@ -35,7 +35,7 @@ defmodule NxLiveVizWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
+    <header class="flex items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
       <div class="flex-1">
         <a href="/" class="flex-1 flex w-fit items-center gap-2">
           <img src={~p"/images/logo.svg"} width="36" />
@@ -45,16 +45,16 @@ defmodule NxLiveVizWeb.Layouts do
       <div class="flex-none">
         <ul class="flex flex-column px-1 space-x-4 items-center">
           <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Website</a>
+            <a href="https://phoenixframework.org/" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Website</a>
           </li>
           <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
+            <a href="https://github.com/phoenixframework/phoenix" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">GitHub</a>
           </li>
           <li>
             <.theme_toggle />
           </li>
           <li>
-            <a href="https://hexdocs.pm/phoenix/overview.html" class="btn btn-primary">
+            <a href="https://hexdocs.pm/phoenix/overview.html" class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white rounded-lg bg-[var(--color-primary)] hover:opacity-90 transition-opacity">
               Get Started <span aria-hidden="true">&rarr;</span>
             </a>
           </li>
@@ -122,8 +122,8 @@ defmodule NxLiveVizWeb.Layouts do
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
+    <div class="relative flex flex-row items-center border-2 border-[var(--color-base-300)] bg-[var(--color-base-300)] rounded-full">
+      <div class="absolute w-1/3 h-full rounded-full border border-[var(--color-base-200)] bg-[var(--color-base-100)] brightness-200 left-0 [.light_&]:left-1/3 [.dark_&]:left-2/3 transition-[left]" />
 
       <button
         class="flex p-2 cursor-pointer w-1/3"

@@ -22,10 +22,10 @@ defmodule NxLiveVizWeb.DashboardLive do
     assigns = assign(assigns, :tabs, @tabs)
 
     ~H"""
-    <div class="min-h-screen bg-gray-950 text-white">
-      <header class="border-b border-gray-800 px-6 py-4">
-        <h1 class="text-2xl font-bold text-indigo-400">NxLiveViz</h1>
-        <p class="text-sm text-gray-400">Real-time ML Dashboard</p>
+    <div class="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white">
+      <header class="border-b border-gray-200 dark:border-gray-800 px-6 py-4">
+        <h1 class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">NxLiveViz</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Real-time ML Dashboard</p>
       </header>
 
       <nav class="flex gap-1 px-6 pt-4">
@@ -73,8 +73,8 @@ defmodule NxLiveVizWeb.DashboardLive do
       class={[
         "px-4 py-2 rounded-t-lg text-sm font-medium transition-colors",
         if(@active,
-          do: "bg-gray-800 text-indigo-400 border-b-2 border-indigo-400",
-          else: "text-gray-400 hover:text-gray-200 hover:bg-gray-900"
+          do: "bg-gray-100 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400",
+          else: "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-900"
         )
       ]}
     >

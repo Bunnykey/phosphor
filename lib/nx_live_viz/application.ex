@@ -5,6 +5,8 @@ defmodule NxLiveViz.Application do
 
   @impl true
   def start(_type, _args) do
+    NxLiveViz.ML.TrainingStore.init()
+
     children = [
       NxLiveVizWeb.Telemetry,
       {Phoenix.PubSub, name: NxLiveViz.PubSub},
@@ -12,15 +14,18 @@ defmodule NxLiveViz.Application do
       # Data sources
       NxLiveViz.Data.Simulator,
       {NxLiveViz.Data.CryptoAPI, active: false},
+      {NxLiveViz.Data.SystemMetrics, active: false},
 
       # ML Servings (each in its own process)
       {Nx.Serving,
        serving: NxLiveViz.ML.ImageClassifier.serving(),
        name: NxLiveViz.ImageServing,
+       batch_size: 4,
        batch_timeout: 100},
       {Nx.Serving,
        serving: NxLiveViz.ML.Sentiment.serving(),
        name: NxLiveViz.SentimentServing,
+       batch_size: 4,
        batch_timeout: 100},
 
       # Web

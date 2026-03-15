@@ -2,7 +2,11 @@ import Chart from "chart.js/auto"
 
 const LineChart = {
   mounted() {
-    const ctx = this.el.querySelector("canvas").getContext("2d")
+    const canvas = this.el.querySelector("canvas")
+    canvas.setAttribute("role", "img")
+    canvas.setAttribute("aria-label", this.el.dataset.ariaLabel || this.el.getAttribute("aria-label") || "Line chart")
+
+    const ctx = canvas.getContext("2d")
     this.chart = new Chart(ctx, {
       type: "line",
       data: {
@@ -24,11 +28,29 @@ const LineChart = {
         maintainAspectRatio: false,
         animation: { duration: 0 },
         scales: {
-          x: { display: true },
-          y: { display: true, beginAtZero: false },
+          x: {
+            display: true,
+            ticks: { color: '#9ca3af' },
+            grid: { color: 'rgba(75, 85, 99, 0.3)' },
+          },
+          y: {
+            display: true,
+            beginAtZero: false,
+            ticks: { color: '#9ca3af' },
+            grid: { color: 'rgba(75, 85, 99, 0.3)' },
+          },
         },
         plugins: {
-          legend: { display: true },
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              color: '#9ca3af',
+              font: { size: 11 },
+              boxWidth: 12,
+              padding: 8,
+            },
+          },
         },
       },
     })

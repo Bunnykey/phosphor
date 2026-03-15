@@ -2,7 +2,11 @@ import Chart from "chart.js/auto"
 
 const HistogramChart = {
   mounted() {
-    const ctx = this.el.querySelector("canvas").getContext("2d")
+    const canvas = this.el.querySelector("canvas")
+    canvas.setAttribute("role", "img")
+    canvas.setAttribute("aria-label", this.el.dataset.ariaLabel || this.el.getAttribute("aria-label") || "Histogram chart showing weight distribution")
+
+    const ctx = canvas.getContext("2d")
     this.chart = new Chart(ctx, {
       type: "bar",
       data: {
@@ -20,11 +24,31 @@ const HistogramChart = {
         maintainAspectRatio: false,
         animation: { duration: 0 },
         scales: {
-          x: { display: true, title: { display: true, text: "Value" } },
-          y: { display: true, title: { display: true, text: "Frequency" }, beginAtZero: true },
+          x: {
+            display: true,
+            title: { display: true, text: "Value", color: '#9ca3af' },
+            ticks: { color: '#9ca3af' },
+            grid: { color: 'rgba(75, 85, 99, 0.3)' },
+          },
+          y: {
+            display: true,
+            title: { display: true, text: "Frequency", color: '#9ca3af' },
+            beginAtZero: true,
+            ticks: { color: '#9ca3af' },
+            grid: { color: 'rgba(75, 85, 99, 0.3)' },
+          },
         },
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              color: '#9ca3af',
+              font: { size: 11 },
+              boxWidth: 12,
+              padding: 8,
+            },
+          },
         },
       },
     })

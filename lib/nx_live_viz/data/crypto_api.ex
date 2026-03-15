@@ -15,7 +15,7 @@ defmodule NxLiveViz.Data.CryptoAPI do
   def init(opts) do
     active = Keyword.get(opts, :active, false)
     if active, do: schedule_fetch()
-    {:ok, %{active: active}}
+    {:ok, %{active: active, last_value: nil}}
   end
 
   def activate(server \\ __MODULE__) do
@@ -49,25 +49,35 @@ defmodule NxLiveViz.Data.CryptoAPI do
         }
 
         Phoenix.PubSub.broadcast(NxLiveViz.PubSub, "sensor:data", {:sensor_data, point})
+        schedule_fetch()
+        {:noreply, %{state | last_value: price}}
 
       {:error, _reason} ->
-        :ok
-    end
+        if state.last_value do
+          point = %{
+            value: state.last_value * 1.0,
+            timestamp: DateTime.utc_now(),
+            anomaly: false
+          }
 
-    schedule_fetch()
-    {:noreply, state}
+          Phoenix.PubSub.broadcast(NxLiveViz.PubSub, "sensor:data", {:sensor_data, point})
+        end
+
+        schedule_fetch()
+        {:noreply, state}
+    end
   end
 
   defp fetch_price do
-    case :httpc.request(:get, {~c"#{@api_url}", []}, [timeout: 5_000], []) do
-      {:ok, {{_, 200, _}, _headers, body}} ->
-        case Jason.decode(body) do
-          {:ok, %{"bitcoin" => %{"usd" => price}}} -> {:ok, price}
-          _ -> {:error, :parse_error}
-        end
+    case Req.get(@api_url) do
+      {:ok, %Req.Response{status: 200, body: %{"bitcoin" => %{"usd" => price}}}} ->
+        {:ok, price}
 
-      _ ->
-        {:error, :request_failed}
+      {:ok, _} ->
+        {:error, :unexpected_response}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

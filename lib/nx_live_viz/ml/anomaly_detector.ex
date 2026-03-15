@@ -51,4 +51,33 @@ defmodule NxLiveViz.ML.AnomalyDetector do
 
     %{state | params: trained_state}
   end
+
+  @doc """
+  Returns a detector pre-trained on synthetic normal data (sine wave + small noise).
+  The autoencoder learns to reconstruct normal patterns, so anomalies
+  (which it cannot reconstruct well) will produce high reconstruction error.
+  """
+  def pretrained_detector(opts \\ []) do
+    input_size = Keyword.get(opts, :input_size, @default_input_size)
+
+    # Generate ~200 normal data points: sine wave + small noise, no anomalies
+    normal_data =
+      for i <- 0..199 do
+        :math.sin(i / 3.0) * 10 + 50 + (:rand.uniform() * 4 - 2)
+      end
+
+    state = init_params(input_size: input_size)
+
+    # Create training windows and pair each as {input, target} for the autoencoder
+    training_data =
+      normal_data
+      |> Enum.chunk_every(input_size, 1, :discard)
+      |> Enum.map(fn window ->
+        tensor = Nx.tensor([window], type: :f32)
+        {tensor, tensor}
+      end)
+
+    # Train for a few epochs on normal data so the model learns normal patterns
+    train(state, training_data, epochs: 5)
+  end
 end

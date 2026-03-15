@@ -59,6 +59,7 @@ defmodule NxLiveViz.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
+      {:req, "~> 0.5"},
       {:bandit, "~> 1.5"},
 
       # ML / Nx ecosystem
@@ -87,7 +88,7 @@ defmodule NxLiveViz.MixProject do
         "esbuild nx_live_viz --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: ["format", "compile --warnings-as-errors", "test"]
     ]
   end
 end
