@@ -48,6 +48,14 @@ defmodule NxLiveViz.Data.Simulator do
     GenServer.cast(server, {:set_pattern, pattern})
   end
 
+  def activate(server \\ __MODULE__) do
+    GenServer.cast(server, :activate)
+  end
+
+  def deactivate(server \\ __MODULE__) do
+    GenServer.cast(server, :deactivate)
+  end
+
   def generate_point(opts \\ []) do
     anomaly_rate = Keyword.get(opts, :anomaly_rate, @default_anomaly_rate)
     pattern = Keyword.get(opts, :pattern, :sine)
@@ -76,13 +84,16 @@ defmodule NxLiveViz.Data.Simulator do
   @impl true
   def init(opts) do
     interval = Keyword.get(opts, :interval, @default_interval)
-    schedule_tick(interval)
-    {:ok, %{interval: interval, tick: 0, pattern: :sine}}
+    active = Keyword.get(opts, :active, true)
+    if active, do: schedule_tick(interval)
+    {:ok, %{interval: interval, tick: 0, pattern: :sine, active: active}}
   end
 
   @valid_patterns [:sine, :ecg, :network]
 
   @impl true
+  def handle_info(:tick, %{active: false} = state), do: {:noreply, state}
+
   def handle_info(:tick, state) do
     point = generate_point(pattern: state.pattern, tick: state.tick)
     NxLiveViz.broadcast_sensor_data(point)
@@ -91,6 +102,15 @@ defmodule NxLiveViz.Data.Simulator do
   end
 
   @impl true
+  def handle_cast(:activate, %{active: true} = state), do: {:noreply, state}
+
+  def handle_cast(:activate, state) do
+    schedule_tick(state.interval)
+    {:noreply, %{state | active: true}}
+  end
+
+  def handle_cast(:deactivate, state), do: {:noreply, %{state | active: false}}
+
   def handle_cast({:set_pattern, pattern}, state) when pattern in @valid_patterns do
     {:noreply, %{state | pattern: pattern}}
   end
