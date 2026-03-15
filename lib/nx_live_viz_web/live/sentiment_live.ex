@@ -73,20 +73,12 @@ defmodule NxLiveVizWeb.SentimentLive do
 
   @impl true
   def handle_info({:sentiment_result, text, result}, socket) do
-    predictions = result.predictions
-
-    scores = %{
-      positive: find_score(predictions, "POS"),
-      negative: find_score(predictions, "NEG"),
-      neutral: find_score(predictions, "NEU")
-    }
-
-    top = Enum.max_by(predictions, & &1.score)
+    {label, dominant_score, scores} = map_sentiment(result.predictions)
 
     history_entry = %{
       text: String.slice(text, 0, 50),
-      label: top.label,
-      score: top.score,
+      label: label,
+      score: dominant_score,
       time: DateTime.utc_now()
     }
 
@@ -110,7 +102,7 @@ defmodule NxLiveVizWeb.SentimentLive do
                 |> Enum.take(20)
                 |> Enum.reverse()
                 |> Enum.map(fn h -> if h.label == "POS", do: h.score, else: -h.score end))
-                ++ [if(top.label == "POS", do: top.score, else: -top.score)]
+                ++ [if(label == "POS", do: dominant_score, else: -dominant_score)]
       })
 
     {:noreply, socket}
@@ -145,11 +137,31 @@ defmodule NxLiveVizWeb.SentimentLive do
     {history, sentiment_scores, sentiment_trend}
   end
 
-  defp find_score(predictions, label) do
-    case Enum.find(predictions, fn p -> p.label == label end) do
-      nil -> 0.0
-      p -> p.score
-    end
+  # Map star ratings from nlptown/bert-base-multilingual-uncased-sentiment to sentiment categories.
+  # Labels: "1 star", "2 stars", "3 stars", "4 stars", "5 stars"
+  defp map_sentiment(predictions) do
+    scores =
+      Enum.reduce(predictions, %{positive: 0.0, negative: 0.0, neutral: 0.0}, fn pred, acc ->
+        case pred.label do
+          "5 stars" -> %{acc | positive: acc.positive + pred.score}
+          "4 stars" -> %{acc | positive: acc.positive + pred.score}
+          "3 stars" -> %{acc | neutral: acc.neutral + pred.score}
+          "2 stars" -> %{acc | negative: acc.negative + pred.score}
+          "1 star" -> %{acc | negative: acc.negative + pred.score}
+          _ -> acc
+        end
+      end)
+
+    label =
+      cond do
+        scores.positive > scores.negative and scores.positive > scores.neutral -> "POS"
+        scores.negative > scores.positive and scores.negative > scores.neutral -> "NEG"
+        true -> "NEU"
+      end
+
+    dominant_score = max(scores.positive, max(scores.negative, scores.neutral))
+
+    {label, dominant_score, scores}
   end
 
   @impl true
@@ -158,7 +170,7 @@ defmodule NxLiveVizWeb.SentimentLive do
     <div class="space-y-4">
       <div>
         <h2 class="text-xl font-semibold">Sentiment Analysis</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">DistilBERT — enter text to analyze</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Multilingual mBERT — enter text to analyze (supports Korean)</p>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -212,7 +224,7 @@ defmodule NxLiveVizWeb.SentimentLive do
             <button
               type="button"
               phx-click="try-sample"
-              phx-value-text="The movie started slow but the ending was truly breathtaking and emotional."
+              phx-value-text="이 제품은 품질은 좋지만 가격이 너무 비싸요."
               class="px-3 py-1 text-xs rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-700/50 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 transition-colors"
             >
               Mixed

@@ -5,8 +5,8 @@ defmodule NxLiveViz.Data.CryptoAPI do
 
   require Logger
 
-  @interval 2_000
-  @api_url "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+  @interval 3_000
+  @api_url "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
 
   def start_link(opts \\ []) do
     name = Keyword.get(opts, :name, __MODULE__)
@@ -78,7 +78,8 @@ defmodule NxLiveViz.Data.CryptoAPI do
 
   defp fetch_price do
     case Req.get(@api_url) do
-      {:ok, %Req.Response{status: 200, body: %{"bitcoin" => %{"usd" => price}}}} ->
+      {:ok, %Req.Response{status: 200, body: %{"price" => price_str}}} ->
+        {price, _} = Float.parse(price_str)
         {:ok, price}
 
       {:ok, _} ->
