@@ -125,26 +125,21 @@ defmodule NxLiveVizWeb.TrainingLive do
   end
 
   def handle_event("update-params", params, socket) do
+    dataset_str = Map.get(params, "dataset", to_string(socket.assigns.dataset))
+    dataset = @dataset_map[dataset_str] || socket.assigns.dataset
     epochs = safe_int(params["epochs"], socket.assigns.epochs) |> max(1) |> min(50)
     lr = safe_float(params["learning_rate"], socket.assigns.learning_rate) |> max(0.0001) |> min(0.01)
     batch_size = safe_int(params["batch_size"], socket.assigns.batch_size) |> max(8) |> min(128)
 
-    {:noreply, assign(socket, epochs: epochs, learning_rate: lr, batch_size: batch_size)}
-  end
-
-  def handle_event("change-dataset", %{"dataset" => dataset}, socket) do
-    case Map.fetch(@dataset_map, dataset) do
-      {:ok, ds} ->
-        {:noreply,
-         assign(socket,
-           dataset: ds,
-           dataset_label: @dataset_labels[ds],
-           architecture_label: @architecture_labels[ds]
-         )}
-
-      :error ->
-        {:noreply, socket}
-    end
+    {:noreply,
+     assign(socket,
+       dataset: dataset,
+       dataset_label: @dataset_labels[dataset],
+       architecture_label: @architecture_labels[dataset],
+       epochs: epochs,
+       learning_rate: lr,
+       batch_size: batch_size
+     )}
   end
 
   @impl true
@@ -327,119 +322,115 @@ defmodule NxLiveVizWeb.TrainingLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_path={@current_path}>
-    <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-xl font-semibold">Training Visualization</h2>
-          <p class="text-sm text-gray-500 dark:text-gray-400">MNIST classifier — watch the model learn</p>
-          <div class="flex flex-wrap gap-2 text-xs mt-2">
-            <span class="px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium">
-              {@dataset_label}
-            </span>
-            <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-              {@architecture_label}
-            </span>
-            <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-              Optimizer: Adam
-            </span>
-            <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-              Loss: CCE
-            </span>
-          </div>
-        </div>
-        <div class="flex gap-2">
-          <button
-            :if={!@training}
-            phx-click="start"
-            class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium text-white"
-          >
-            Start Training
-          </button>
-          <button
-            :if={@training}
-            phx-click="stop"
-            class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium text-white"
-          >
-            Stop
-          </button>
-          <button
-            phx-click="reset"
-            class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm font-medium"
-          >
-            Reset
-          </button>
-        </div>
+    <div class="space-y-6">
+      <div>
+        <h1 class="text-lg font-semibold">Training Visualization</h1>
+        <p class="text-sm text-gray-500">Axon · Live loss & accuracy</p>
       </div>
 
-      <div class="flex items-center gap-2 mb-4">
-        <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Dataset:</span>
-        <select name="dataset" phx-change="change-dataset" class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300" disabled={@training}>
-          <option value="mnist" selected={@dataset == :mnist}>MNIST (Random)</option>
-          <option value="fashion" selected={@dataset == :fashion}>Fashion-MNIST</option>
-          <option value="xor" selected={@dataset == :xor}>XOR Pattern</option>
-        </select>
-      </div>
+      <form phx-change="update-params" id="training-params" class="space-y-4">
+        <div class="grid grid-cols-[auto_1fr_auto] items-center gap-x-4 gap-y-3 text-sm">
+          <label class="text-gray-500">Dataset</label>
+          <select
+            name="dataset"
+            disabled={@training}
+            class="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm"
+          >
+            <option value="mnist" selected={@dataset == :mnist}>MNIST (Random)</option>
+            <option value="fashion" selected={@dataset == :fashion}>Fashion-MNIST</option>
+            <option value="xor" selected={@dataset == :xor}>XOR Pattern</option>
+          </select>
+          <span class="text-sm text-gray-500">{@architecture_label}</span>
 
-      <!-- Hyperparameter controls -->
-      <form phx-change="update-params" class="flex gap-4 bg-gray-100 dark:bg-gray-900 rounded-lg p-4">
-        <div class="flex-1">
-          <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Epochs</label>
+          <label class="text-gray-500">Epochs</label>
           <input
             type="range" name="epochs" min="1" max="50" value={@epochs}
             disabled={@training}
             class="w-full"
           />
-          <span class="text-xs text-gray-600 dark:text-gray-300">{@epochs}</span>
-        </div>
-        <div class="flex-1">
-          <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Learning Rate</label>
+          <span class="font-mono text-sm w-10 text-right">{@epochs}</span>
+
+          <label class="text-gray-500">Learning Rate</label>
           <input
             type="range" name="learning_rate" min="0.0001" max="0.01" step="0.0001" value={@learning_rate}
             disabled={@training}
             class="w-full"
           />
-          <span class="text-xs text-gray-600 dark:text-gray-300">{@learning_rate}</span>
-        </div>
-        <div class="flex-1">
-          <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Batch Size</label>
+          <span class="font-mono text-sm w-16 text-right">{@learning_rate}</span>
+
+          <label class="text-gray-500">Batch Size</label>
           <input
             type="range" name="batch_size" min="8" max="128" step="8" value={@batch_size}
             disabled={@training}
             class="w-full"
           />
-          <span class="text-xs text-gray-600 dark:text-gray-300">{@batch_size}</span>
+          <span class="font-mono text-sm w-10 text-right">{@batch_size}</span>
         </div>
       </form>
 
-      <div class="flex items-center gap-4 text-sm">
+      <div class="flex items-center gap-3">
+        <button
+          :if={!@training}
+          type="button"
+          phx-click="start"
+          class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium text-white transition-colors"
+        >
+          Start Training
+        </button>
+        <button
+          :if={@training}
+          type="button"
+          phx-click="stop"
+          class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium text-white transition-colors"
+        >
+          Stop
+        </button>
+        <button
+          type="button"
+          phx-click="reset"
+          class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors"
+        >
+          Reset
+        </button>
+        <span :if={@training} class="text-sm text-green-600">● Training</span>
+      </div>
+
+      <div class="flex items-center gap-4 text-sm font-mono">
         <span class="text-gray-500 dark:text-gray-400">
-          Epoch: <span class="font-mono text-gray-700 dark:text-gray-200">{@current_epoch}</span>
+          Epoch: <span class="text-gray-700 dark:text-gray-200">{@current_epoch}</span>
         </span>
         <span class="text-gray-500 dark:text-gray-400">
-          Iteration: <span class="font-mono text-gray-700 dark:text-gray-200">{@current_iteration}</span>
+          Iteration: <span class="text-gray-700 dark:text-gray-200">{@current_iteration}</span>
         </span>
         <span :if={@current_loss} class="text-gray-500 dark:text-gray-400">
-          Loss: <span class="font-mono text-orange-600 dark:text-orange-400">{Float.round(@current_loss, 4)}</span>
+          Loss: <span class="text-gray-700 dark:text-gray-200">{Float.round(@current_loss, 4)}</span>
         </span>
         <span :if={@current_accuracy} class="text-gray-500 dark:text-gray-400">
-          Accuracy: <span class="font-mono text-green-600 dark:text-green-400">{Float.round(@current_accuracy * 100, 1)}%</span>
-        </span>
-        <span :if={@training} class="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
-          <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-          Training...
+          Accuracy: <span class="text-gray-700 dark:text-gray-200">{Float.round(@current_accuracy * 100, 1)}%</span>
         </span>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div id="loss-chart" phx-hook="LineChart" phx-update="ignore" data-label="Loss" data-x-label="Iteration" data-y-label="Loss" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
+        <div
+          id="loss-chart" phx-hook="LineChart" phx-update="ignore"
+          data-label="Loss" data-x-label="Iteration" data-y-label="Loss"
+          class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 h-64"
+        >
           <canvas></canvas>
         </div>
-        <div id="accuracy-chart" phx-hook="LineChart" phx-update="ignore" data-label="Accuracy" data-x-label="Iteration" data-y-label="Accuracy" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
+        <div
+          id="accuracy-chart" phx-hook="LineChart" phx-update="ignore"
+          data-label="Accuracy" data-x-label="Iteration" data-y-label="Accuracy"
+          class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 h-64"
+        >
           <canvas></canvas>
         </div>
       </div>
 
-      <div id="weight-histogram" phx-hook="HistogramChart" phx-update="ignore" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
+      <div
+        id="weight-histogram" phx-hook="HistogramChart" phx-update="ignore"
+        class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 h-64"
+      >
         <canvas></canvas>
       </div>
     </div>
