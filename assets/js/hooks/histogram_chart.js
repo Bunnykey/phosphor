@@ -1,10 +1,9 @@
 import Chart from "chart.js/auto"
+import { setupCanvas, legendConfig, axisConfig, chartEventName, destroyChart, CHART_TEXT_COLOR } from "./chart_utils"
 
 const HistogramChart = {
   mounted() {
-    const canvas = this.el.querySelector("canvas")
-    canvas.setAttribute("role", "img")
-    canvas.setAttribute("aria-label", this.el.dataset.ariaLabel || this.el.getAttribute("aria-label") || "Histogram chart showing weight distribution")
+    const canvas = setupCanvas(this.el, "Histogram chart showing weight distribution")
 
     const ctx = canvas.getContext("2d")
     this.chart = new Chart(ctx, {
@@ -24,36 +23,23 @@ const HistogramChart = {
         maintainAspectRatio: false,
         animation: { duration: 0 },
         scales: {
-          x: {
+          x: axisConfig({
             display: true,
-            title: { display: true, text: "Value", color: '#9ca3af' },
-            ticks: { color: '#9ca3af' },
-            grid: { color: 'rgba(75, 85, 99, 0.3)' },
-          },
-          y: {
+            title: { display: true, text: "Value", color: CHART_TEXT_COLOR },
+          }),
+          y: axisConfig({
             display: true,
-            title: { display: true, text: "Frequency", color: '#9ca3af' },
+            title: { display: true, text: "Frequency", color: CHART_TEXT_COLOR },
             beginAtZero: true,
-            ticks: { color: '#9ca3af' },
-            grid: { color: 'rgba(75, 85, 99, 0.3)' },
-          },
+          }),
         },
         plugins: {
-          legend: {
-            display: true,
-            position: 'top',
-            labels: {
-              color: '#9ca3af',
-              font: { size: 11 },
-              boxWidth: 12,
-              padding: 8,
-            },
-          },
+          legend: legendConfig(),
         },
       },
     })
 
-    this.handleEvent("chart-data:" + this.el.id, ({ bins, counts }) => {
+    this.handleEvent(chartEventName(this.el), ({ bins, counts }) => {
       this.chart.data.labels = bins
       this.chart.data.datasets[0].data = counts
       this.chart.update("none")
@@ -61,7 +47,7 @@ const HistogramChart = {
   },
 
   destroyed() {
-    if (this.chart) this.chart.destroy()
+    destroyChart(this)
   },
 }
 

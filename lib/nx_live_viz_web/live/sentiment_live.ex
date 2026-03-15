@@ -5,8 +5,7 @@ defmodule NxLiveVizWeb.SentimentLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {history, sentiment_scores, sentiment_trend, current_label, current_score} =
-      seed_sentiment_data()
+    {history, sentiment_scores, sentiment_trend} = seed_sentiment_data()
 
     socket =
       socket
@@ -15,9 +14,7 @@ defmodule NxLiveVizWeb.SentimentLive do
         result: sentiment_scores,
         history: history,
         analyzing: false,
-        error: nil,
-        current_label: current_label,
-        current_score: current_score
+        error: nil
       )
 
     socket =
@@ -40,7 +37,7 @@ defmodule NxLiveVizWeb.SentimentLive do
       text == "" ->
         {:noreply, assign(socket, error: "Please enter some text to analyze.")}
 
-      String.length(text) > 10_000 ->
+      byte_size(text) > 10_000 ->
         {:noreply, assign(socket, error: "Text is too long (max 10,000 characters).")}
 
       true ->
@@ -117,11 +114,6 @@ defmodule NxLiveVizWeb.SentimentLive do
       %{text: "I absolutely love this product! Best purchase ever!", label: "POS", score: 0.96, time: DateTime.add(now, -5, :minute)}
     ]
 
-    # Most recent entry determines current label/score
-    current = hd(history)
-    current_label = current.label
-    current_score = current.score
-
     # Sentiment scores based on the most recent analysis
     sentiment_scores = %{
       positive: 0.05,
@@ -137,7 +129,7 @@ defmodule NxLiveVizWeb.SentimentLive do
       values: trend_entries |> Enum.map(fn h -> if h.label == "POS", do: h.score, else: -h.score end)
     }
 
-    {history, sentiment_scores, sentiment_trend, current_label, current_score}
+    {history, sentiment_scores, sentiment_trend}
   end
 
   defp find_score(predictions, label) do

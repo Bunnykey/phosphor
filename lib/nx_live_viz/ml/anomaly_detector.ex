@@ -53,6 +53,23 @@ defmodule NxLiveViz.ML.AnomalyDetector do
   end
 
   @doc """
+  Returns a cached pre-trained detector, training only on first call.
+  The trained model is stored in `:persistent_term` so subsequent calls
+  (including LiveView re-mounts) return instantly.
+  """
+  def cached_detector(opts \\ []) do
+    case :persistent_term.get({__MODULE__, :default}, nil) do
+      nil ->
+        detector = pretrained_detector(opts)
+        :persistent_term.put({__MODULE__, :default}, detector)
+        detector
+
+      detector ->
+        detector
+    end
+  end
+
+  @doc """
   Returns a detector pre-trained on synthetic normal data (sine wave + small noise).
   The autoencoder learns to reconstruct normal patterns, so anomalies
   (which it cannot reconstruct well) will produce high reconstruction error.
@@ -63,7 +80,7 @@ defmodule NxLiveViz.ML.AnomalyDetector do
     # Generate ~200 normal data points: sine wave + small noise, no anomalies
     normal_data =
       for i <- 0..199 do
-        :math.sin(i / 3.0) * 10 + 50 + (:rand.uniform() * 4 - 2)
+        NxLiveViz.Data.Simulator.normal_value(i)
       end
 
     state = init_params(input_size: input_size)

@@ -20,7 +20,10 @@ defmodule NxLiveViz.ML.ImageClassifier do
   @doc "Classify multiple images concurrently, leveraging Nx.Serving's internal batching."
   def classify_many(image_binaries) when is_list(image_binaries) do
     image_binaries
-    |> Task.async_stream(fn binary -> classify(binary) end, timeout: :infinity)
-    |> Enum.map(fn {:ok, result} -> result end)
+    |> Task.async_stream(&classify/1, timeout: 30_000)
+    |> Enum.flat_map(fn
+      {:ok, result} -> [result]
+      {:exit, _reason} -> []
+    end)
   end
 end

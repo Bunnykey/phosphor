@@ -1,10 +1,9 @@
 import Chart from "chart.js/auto"
+import { setupCanvas, legendConfig, axisConfig, chartEventName, destroyChart } from "./chart_utils"
 
 const BarChart = {
   mounted() {
-    const canvas = this.el.querySelector("canvas")
-    canvas.setAttribute("role", "img")
-    canvas.setAttribute("aria-label", this.el.dataset.ariaLabel || this.el.getAttribute("aria-label") || "Bar chart")
+    const canvas = setupCanvas(this.el, "Bar chart")
 
     const ctx = canvas.getContext("2d")
     this.chart = new Chart(ctx, {
@@ -30,33 +29,16 @@ const BarChart = {
         maintainAspectRatio: false,
         animation: { duration: 300 },
         scales: {
-          x: {
-            beginAtZero: true,
-            max: 1.0,
-            ticks: { color: '#9ca3af' },
-            grid: { color: 'rgba(75, 85, 99, 0.3)' },
-          },
-          y: {
-            ticks: { color: '#9ca3af' },
-            grid: { color: 'rgba(75, 85, 99, 0.3)' },
-          },
+          x: axisConfig({ beginAtZero: true, max: 1.0 }),
+          y: axisConfig(),
         },
         plugins: {
-          legend: {
-            display: true,
-            position: 'top',
-            labels: {
-              color: '#9ca3af',
-              font: { size: 11 },
-              boxWidth: 12,
-              padding: 8,
-            },
-          },
+          legend: legendConfig(),
         },
       },
     })
 
-    this.handleEvent("chart-data:" + this.el.id, ({ labels, values }) => {
+    this.handleEvent(chartEventName(this.el), ({ labels, values }) => {
       this.chart.data.labels = labels
       this.chart.data.datasets[0].data = values
       this.chart.update()
@@ -64,7 +46,7 @@ const BarChart = {
   },
 
   destroyed() {
-    if (this.chart) this.chart.destroy()
+    destroyChart(this)
   },
 }
 

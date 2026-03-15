@@ -1,28 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { setupChartMock, createMockHookContext } from './test_helpers'
 
-// Mock chart.js/auto before importing the hook
-vi.mock('chart.js/auto', () => {
-  const MockChart = vi.fn().mockImplementation(() => ({
-    data: { labels: [], datasets: [{ data: [] }] },
-    update: vi.fn(),
-    destroy: vi.fn(),
-  }))
-  return { default: MockChart }
-})
+setupChartMock()
 
 import HistogramChart from '../histogram_chart'
-
-function createMockHookContext(innerHTML = '<canvas></canvas>') {
-  const el = document.createElement('div')
-  el.innerHTML = innerHTML
-  el.id = 'test-histogram-chart'
-  el.dataset.ariaLabel = 'Test histogram chart'
-  return {
-    el,
-    handleEvent: vi.fn(),
-    chart: null,
-  }
-}
 
 describe('HistogramChart hook', () => {
   beforeEach(() => {
@@ -38,7 +19,7 @@ describe('HistogramChart hook', () => {
   })
 
   it('sets role="img" on the canvas after mount', () => {
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-histogram-chart', 'Test histogram chart')
     HistogramChart.mounted.call(ctx)
 
     const canvas = ctx.el.querySelector('canvas')
@@ -46,7 +27,7 @@ describe('HistogramChart hook', () => {
   })
 
   it('sets aria-label on the canvas from dataset after mount', () => {
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-histogram-chart', 'Test histogram chart')
     HistogramChart.mounted.call(ctx)
 
     const canvas = ctx.el.querySelector('canvas')
@@ -54,7 +35,7 @@ describe('HistogramChart hook', () => {
   })
 
   it('falls back to default aria-label when none provided', () => {
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-histogram-chart', 'Test histogram chart')
     delete ctx.el.dataset.ariaLabel
     HistogramChart.mounted.call(ctx)
 
@@ -63,7 +44,7 @@ describe('HistogramChart hook', () => {
   })
 
   it('registers a handleEvent listener for chart-data', () => {
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-histogram-chart', 'Test histogram chart')
     HistogramChart.mounted.call(ctx)
 
     expect(ctx.handleEvent).toHaveBeenCalledTimes(1)
@@ -75,7 +56,7 @@ describe('HistogramChart hook', () => {
 
   it('creates a Chart instance with type "bar" on mount', async () => {
     const { default: Chart } = await import('chart.js/auto')
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-histogram-chart', 'Test histogram chart')
     HistogramChart.mounted.call(ctx)
 
     expect(Chart).toHaveBeenCalled()
@@ -86,7 +67,7 @@ describe('HistogramChart hook', () => {
   })
 
   it('updates chart data when handleEvent callback is invoked with bins and counts', () => {
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-histogram-chart', 'Test histogram chart')
     HistogramChart.mounted.call(ctx)
 
     const callback = ctx.handleEvent.mock.calls[0][1]
@@ -98,7 +79,7 @@ describe('HistogramChart hook', () => {
   })
 
   it('destroys chart on destroyed lifecycle', () => {
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-histogram-chart', 'Test histogram chart')
     HistogramChart.mounted.call(ctx)
 
     const destroySpy = ctx.chart.destroy

@@ -18,7 +18,10 @@ defmodule NxLiveViz.ML.Sentiment do
   @doc "Analyze sentiment for multiple texts concurrently."
   def analyze_many(texts) when is_list(texts) do
     texts
-    |> Task.async_stream(fn text -> analyze(text) end, timeout: :infinity)
-    |> Enum.map(fn {:ok, result} -> result end)
+    |> Task.async_stream(&analyze/1, timeout: 30_000)
+    |> Enum.flat_map(fn
+      {:ok, result} -> [result]
+      {:exit, _reason} -> []
+    end)
   end
 end

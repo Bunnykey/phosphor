@@ -62,24 +62,27 @@ defmodule NxLiveViz.ML.Trainer do
     |> Axon.Loop.run(data, %{}, epochs: epochs, iterations: iterations)
   end
 
-  defp compute_histogram(tensor) do
+  defp compute_histogram(tensor, num_bins \\ 30) do
     flat = Nx.to_flat_list(tensor)
     min_val = Enum.min(flat)
     max_val = Enum.max(flat)
-    num_bins = 30
-    bin_width = (max_val - min_val) / num_bins
+    range = max_val - min_val
+    bin_width = if range == 0, do: 1.0, else: range / num_bins
 
-    bins = for i <- 0..(num_bins - 1) do
-      bin_start = min_val + i * bin_width
-      Float.round(bin_start, 3)
-    end
+    # Single-pass O(n) bucket sort
+    counts =
+      Enum.reduce(flat, :array.new(num_bins, default: 0), fn v, acc ->
+        i = trunc((v - min_val) / bin_width) |> max(0) |> min(num_bins - 1)
+        :array.set(i, :array.get(i, acc) + 1, acc)
+      end)
 
-    counts = for i <- 0..(num_bins - 1) do
-      bin_start = min_val + i * bin_width
-      bin_end = bin_start + bin_width
-      Enum.count(flat, fn v -> v >= bin_start and v < bin_end end)
-    end
+    bins =
+      for i <- 0..(num_bins - 1) do
+        Float.round(min_val + (i + 0.5) * bin_width, 4) |> to_string()
+      end
 
-    %{bins: Enum.map(bins, &to_string/1), counts: counts}
+    counts_list = for i <- 0..(num_bins - 1), do: :array.get(i, counts)
+
+    %{bins: bins, counts: counts_list}
   end
 end

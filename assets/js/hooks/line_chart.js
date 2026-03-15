@@ -1,10 +1,9 @@
 import Chart from "chart.js/auto"
+import { setupCanvas, legendConfig, axisConfig, chartEventName, destroyChart } from "./chart_utils"
 
 const LineChart = {
   mounted() {
-    const canvas = this.el.querySelector("canvas")
-    canvas.setAttribute("role", "img")
-    canvas.setAttribute("aria-label", this.el.dataset.ariaLabel || this.el.getAttribute("aria-label") || "Line chart")
+    const canvas = setupCanvas(this.el, "Line chart")
 
     const ctx = canvas.getContext("2d")
     this.chart = new Chart(ctx, {
@@ -28,34 +27,16 @@ const LineChart = {
         maintainAspectRatio: false,
         animation: { duration: 0 },
         scales: {
-          x: {
-            display: true,
-            ticks: { color: '#9ca3af' },
-            grid: { color: 'rgba(75, 85, 99, 0.3)' },
-          },
-          y: {
-            display: true,
-            beginAtZero: false,
-            ticks: { color: '#9ca3af' },
-            grid: { color: 'rgba(75, 85, 99, 0.3)' },
-          },
+          x: axisConfig({ display: true }),
+          y: axisConfig({ display: true, beginAtZero: false }),
         },
         plugins: {
-          legend: {
-            display: true,
-            position: 'top',
-            labels: {
-              color: '#9ca3af',
-              font: { size: 11 },
-              boxWidth: 12,
-              padding: 8,
-            },
-          },
+          legend: legendConfig(),
         },
       },
     })
 
-    this.handleEvent("chart-data:" + this.el.id, ({ labels, values, anomalies }) => {
+    this.handleEvent(chartEventName(this.el), ({ labels, values, anomalies }) => {
       this.chart.data.labels = labels
       if (Array.isArray(values[0])) {
         values.forEach((v, i) => {
@@ -77,7 +58,7 @@ const LineChart = {
   },
 
   destroyed() {
-    if (this.chart) this.chart.destroy()
+    destroyChart(this)
   },
 }
 

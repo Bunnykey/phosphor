@@ -48,7 +48,7 @@ defmodule NxLiveViz.Data.CryptoAPI do
           anomaly: false
         }
 
-        Phoenix.PubSub.broadcast(NxLiveViz.PubSub, "sensor:data", {:sensor_data, point})
+        NxLiveViz.broadcast_sensor_data(point)
         schedule_fetch()
         {:noreply, %{state | last_value: price}}
 
@@ -60,7 +60,7 @@ defmodule NxLiveViz.Data.CryptoAPI do
             anomaly: false
           }
 
-          Phoenix.PubSub.broadcast(NxLiveViz.PubSub, "sensor:data", {:sensor_data, point})
+          NxLiveViz.broadcast_sensor_data(point)
         end
 
         schedule_fetch()

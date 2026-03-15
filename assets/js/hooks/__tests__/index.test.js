@@ -1,14 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
+import { setupChartMock } from './test_helpers'
 
 // Mock chart.js/auto so the hooks can be imported without a real Canvas
-vi.mock('chart.js/auto', () => {
-  const MockChart = vi.fn().mockImplementation(() => ({
-    data: { labels: [], datasets: [{ data: [] }] },
-    update: vi.fn(),
-    destroy: vi.fn(),
-  }))
-  return { default: MockChart }
-})
+setupChartMock()
 
 import Hooks from '../index'
 

@@ -1,10 +1,9 @@
 import Chart from "chart.js/auto"
+import { setupCanvas, legendConfig, chartEventName, destroyChart } from "./chart_utils"
 
 const GaugeChart = {
   mounted() {
-    const canvas = this.el.querySelector("canvas")
-    canvas.setAttribute("role", "img")
-    canvas.setAttribute("aria-label", this.el.dataset.ariaLabel || this.el.getAttribute("aria-label") || "Gauge chart showing sentiment distribution")
+    const canvas = setupCanvas(this.el, "Gauge chart showing sentiment distribution")
 
     const ctx = canvas.getContext("2d")
     this.chart = new Chart(ctx, {
@@ -28,21 +27,12 @@ const GaugeChart = {
         circumference: 180,
         cutout: "75%",
         plugins: {
-          legend: {
-            display: true,
-            position: 'bottom',
-            labels: {
-              color: '#9ca3af',
-              font: { size: 11 },
-              boxWidth: 12,
-              padding: 8,
-            },
-          },
+          legend: legendConfig('bottom'),
         },
       },
     })
 
-    this.handleEvent("chart-data:" + this.el.id, ({ positive, negative, neutral }) => {
+    this.handleEvent(chartEventName(this.el), ({ positive, negative, neutral }) => {
       this.chart.data.datasets[0].data = [
         (positive * 100).toFixed(1),
         (negative * 100).toFixed(1),
@@ -53,7 +43,7 @@ const GaugeChart = {
   },
 
   destroyed() {
-    if (this.chart) this.chart.destroy()
+    destroyChart(this)
   },
 }
 

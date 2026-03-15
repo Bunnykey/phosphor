@@ -15,17 +15,16 @@ defmodule NxLiveVizWeb.AnomalyLive do
       Phoenix.PubSub.subscribe(NxLiveViz.PubSub, "sensor:data")
     end
 
-    detector = AnomalyDetector.pretrained_detector(input_size: @window_size)
-
-    {initial_points, initial_anomalies, initial_anomaly_count} =
+    {detector, initial_points, initial_anomalies, initial_anomaly_count} =
       if connected?(socket) do
+        det = AnomalyDetector.cached_detector(input_size: @window_size)
         seed = seed_data()
         points = seed |> Enum.map(& &1.value) |> Enum.reverse()
         anomalies = seed |> Enum.map(& &1.anomaly) |> Enum.reverse()
         count = Enum.count(seed, & &1.anomaly)
-        {points, anomalies, count}
+        {det, points, anomalies, count}
       else
-        {[], [], 0}
+        {nil, [], [], 0}
       end
 
     socket =
@@ -123,7 +122,7 @@ defmodule NxLiveVizWeb.AnomalyLive do
     Enum.map(0..(@seed_count - 1), fn i ->
       is_anomaly = i in @anomaly_indices
 
-      base_value = :math.sin(i / 3.0) * 10 + 50 + (:rand.uniform() * 4 - 2)
+      base_value = NxLiveViz.Data.Simulator.normal_value(i)
 
       value =
         if is_anomaly do

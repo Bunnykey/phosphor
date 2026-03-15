@@ -4,6 +4,11 @@ defmodule NxLiveViz.Data.Simulator do
   @default_interval 100
   @default_anomaly_rate 0.05
 
+  @doc "Generates a normal sine-wave value with small noise for index `i`."
+  def normal_value(i) do
+    :math.sin(i / 3.0) * 10 + 50 + (:rand.uniform() * 4 - 2)
+  end
+
   # Client API
 
   def start_link(opts \\ []) do
@@ -44,7 +49,7 @@ defmodule NxLiveViz.Data.Simulator do
   @impl true
   def handle_info(:tick, state) do
     point = generate_point()
-    Phoenix.PubSub.broadcast(NxLiveViz.PubSub, "sensor:data", {:sensor_data, point})
+    NxLiveViz.broadcast_sensor_data(point)
     schedule_tick(state.interval)
     {:noreply, state}
   end

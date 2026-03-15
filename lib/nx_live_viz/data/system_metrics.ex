@@ -47,7 +47,7 @@ defmodule NxLiveViz.Data.SystemMetrics do
       anomaly: false
     }
 
-    Phoenix.PubSub.broadcast(NxLiveViz.PubSub, "sensor:data", {:sensor_data, point})
+    NxLiveViz.broadcast_sensor_data(point)
     schedule_collect()
     {:noreply, state}
   end

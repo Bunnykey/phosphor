@@ -43,31 +43,9 @@ defmodule NxLiveVizWeb.TrainingLive do
 
         :error ->
           # No persisted state — use seed data
-          {seed_losses, seed_accuracies, seed_histogram} = seed_training_data()
-          reversed_losses = Enum.reverse(seed_losses)
-          reversed_accuracies = Enum.reverse(seed_accuracies)
-          labels = Enum.map(1..length(seed_losses), &to_string/1)
-
           socket
-          |> assign(
-            training: false,
-            task_ref: nil,
-            task_pid: nil,
-            epochs: 10,
-            learning_rate: 0.001,
-            batch_size: 32,
-            losses: reversed_losses,
-            accuracies: reversed_accuracies,
-            current_epoch: 5,
-            current_iteration: 50,
-            current_loss: 0.15,
-            current_accuracy: 0.95,
-            histogram: seed_histogram,
-            status: :completed
-          )
-          |> push_event("chart-data:loss-chart", %{labels: labels, values: seed_losses})
-          |> push_event("chart-data:accuracy-chart", %{labels: labels, values: seed_accuracies})
-          |> push_event("chart-data:weight-histogram", seed_histogram)
+          |> assign(training: false, task_ref: nil, task_pid: nil, epochs: 10, learning_rate: 0.001, batch_size: 32)
+          |> apply_seed_state()
       end
 
     {:ok, socket}
@@ -111,30 +89,7 @@ defmodule NxLiveVizWeb.TrainingLive do
 
   def handle_event("reset", _params, socket) do
     TrainingStore.clear()
-
-    {seed_losses, seed_accuracies, seed_histogram} = seed_training_data()
-    reversed_losses = Enum.reverse(seed_losses)
-    reversed_accuracies = Enum.reverse(seed_accuracies)
-    labels = Enum.map(1..length(seed_losses), &to_string/1)
-
-    socket =
-      socket
-      |> assign(
-        training: false,
-        losses: reversed_losses,
-        accuracies: reversed_accuracies,
-        current_epoch: 5,
-        current_iteration: 50,
-        current_loss: 0.15,
-        current_accuracy: 0.95,
-        histogram: seed_histogram,
-        status: :completed
-      )
-      |> push_event("chart-data:loss-chart", %{labels: labels, values: seed_losses})
-      |> push_event("chart-data:accuracy-chart", %{labels: labels, values: seed_accuracies})
-      |> push_event("chart-data:weight-histogram", seed_histogram)
-
-    {:noreply, socket}
+    {:noreply, apply_seed_state(socket)}
   end
 
   def handle_event("update-params", params, socket) do
@@ -172,16 +127,7 @@ defmodule NxLiveVizWeb.TrainingLive do
         values: display_accuracies
       })
 
-    TrainingStore.save(%{
-      loss_history: socket.assigns.losses,
-      accuracy_history: socket.assigns.accuracies,
-      histogram: socket.assigns.histogram,
-      current_epoch: socket.assigns.current_epoch,
-      current_iteration: socket.assigns.current_iteration,
-      current_loss: socket.assigns.current_loss,
-      current_accuracy: socket.assigns.current_accuracy,
-      status: :training
-    })
+    save_training_snapshot(socket, :training)
 
     {:noreply, socket}
   end
@@ -192,16 +138,7 @@ defmodule NxLiveVizWeb.TrainingLive do
       |> assign(:histogram, histogram)
       |> push_event("chart-data:weight-histogram", histogram)
 
-    TrainingStore.save(%{
-      loss_history: socket.assigns.losses,
-      accuracy_history: socket.assigns.accuracies,
-      histogram: socket.assigns.histogram,
-      current_epoch: socket.assigns.current_epoch,
-      current_iteration: socket.assigns.current_iteration,
-      current_loss: socket.assigns.current_loss,
-      current_accuracy: socket.assigns.current_accuracy,
-      status: socket.assigns.status
-    })
+    save_training_snapshot(socket)
 
     {:noreply, socket}
   end
@@ -211,16 +148,7 @@ defmodule NxLiveVizWeb.TrainingLive do
 
     socket = assign(socket, training: false, task_ref: nil, task_pid: nil, status: :completed)
 
-    TrainingStore.save(%{
-      loss_history: socket.assigns.losses,
-      accuracy_history: socket.assigns.accuracies,
-      histogram: socket.assigns.histogram,
-      current_epoch: socket.assigns.current_epoch,
-      current_iteration: socket.assigns.current_iteration,
-      current_loss: socket.assigns.current_loss,
-      current_accuracy: socket.assigns.current_accuracy,
-      status: :completed
-    })
+    save_training_snapshot(socket, :completed)
 
     {:noreply, socket}
   end
@@ -231,6 +159,44 @@ defmodule NxLiveVizWeb.TrainingLive do
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  defp save_training_snapshot(socket, status \\ nil) do
+    a = socket.assigns
+
+    TrainingStore.save(%{
+      loss_history: a.losses,
+      accuracy_history: a.accuracies,
+      histogram: a.histogram,
+      current_epoch: a.current_epoch,
+      current_iteration: a.current_iteration,
+      current_loss: a.current_loss,
+      current_accuracy: a.current_accuracy,
+      status: status || a.status
+    })
+  end
+
+  defp apply_seed_state(socket) do
+    {seed_losses, seed_accuracies, seed_histogram} = seed_training_data()
+    reversed_losses = Enum.reverse(seed_losses)
+    reversed_accuracies = Enum.reverse(seed_accuracies)
+    loss_labels = Enum.map(1..length(reversed_losses), &to_string/1)
+    acc_labels = Enum.map(1..length(reversed_accuracies), &to_string/1)
+
+    socket
+    |> assign(
+      losses: seed_losses,
+      accuracies: seed_accuracies,
+      histogram: seed_histogram,
+      current_epoch: 5,
+      current_iteration: 50,
+      current_loss: 0.15,
+      current_accuracy: 0.95,
+      status: :completed
+    )
+    |> push_event("chart-data:loss-chart", %{labels: loss_labels, values: reversed_losses})
+    |> push_event("chart-data:accuracy-chart", %{labels: acc_labels, values: reversed_accuracies})
+    |> push_event("chart-data:weight-histogram", seed_histogram)
+  end
 
   # Generates realistic demo data for a completed 5-epoch, 50-iteration training run.
   # Loss follows an exponential decay from ~2.3 to ~0.15 with noise.

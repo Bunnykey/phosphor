@@ -1,28 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { setupChartMock, createMockHookContext } from './test_helpers'
 
-// Mock chart.js/auto before importing the hook
-vi.mock('chart.js/auto', () => {
-  const MockChart = vi.fn().mockImplementation(() => ({
-    data: { labels: [], datasets: [{ data: [] }] },
-    update: vi.fn(),
-    destroy: vi.fn(),
-  }))
-  return { default: MockChart }
-})
+setupChartMock()
 
 import BarChart from '../bar_chart'
-
-function createMockHookContext(innerHTML = '<canvas></canvas>') {
-  const el = document.createElement('div')
-  el.innerHTML = innerHTML
-  el.id = 'test-bar-chart'
-  el.dataset.ariaLabel = 'Test bar chart'
-  return {
-    el,
-    handleEvent: vi.fn(),
-    chart: null,
-  }
-}
 
 describe('BarChart hook', () => {
   beforeEach(() => {
@@ -38,7 +19,7 @@ describe('BarChart hook', () => {
   })
 
   it('sets role="img" on the canvas after mount', () => {
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-bar-chart', 'Test bar chart')
     BarChart.mounted.call(ctx)
 
     const canvas = ctx.el.querySelector('canvas')
@@ -46,7 +27,7 @@ describe('BarChart hook', () => {
   })
 
   it('sets aria-label on the canvas from dataset after mount', () => {
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-bar-chart', 'Test bar chart')
     BarChart.mounted.call(ctx)
 
     const canvas = ctx.el.querySelector('canvas')
@@ -54,7 +35,7 @@ describe('BarChart hook', () => {
   })
 
   it('falls back to default aria-label when none provided', () => {
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-bar-chart', 'Test bar chart')
     delete ctx.el.dataset.ariaLabel
     BarChart.mounted.call(ctx)
 
@@ -63,7 +44,7 @@ describe('BarChart hook', () => {
   })
 
   it('registers a handleEvent listener for chart-data', () => {
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-bar-chart', 'Test bar chart')
     BarChart.mounted.call(ctx)
 
     expect(ctx.handleEvent).toHaveBeenCalledTimes(1)
@@ -75,7 +56,7 @@ describe('BarChart hook', () => {
 
   it('creates a Chart instance with type "bar" on mount', async () => {
     const { default: Chart } = await import('chart.js/auto')
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-bar-chart', 'Test bar chart')
     BarChart.mounted.call(ctx)
 
     expect(Chart).toHaveBeenCalled()
@@ -85,7 +66,7 @@ describe('BarChart hook', () => {
   })
 
   it('updates chart data when handleEvent callback is invoked', () => {
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-bar-chart', 'Test bar chart')
     BarChart.mounted.call(ctx)
 
     const callback = ctx.handleEvent.mock.calls[0][1]
@@ -97,7 +78,7 @@ describe('BarChart hook', () => {
   })
 
   it('destroys chart on destroyed lifecycle', () => {
-    const ctx = createMockHookContext()
+    const ctx = createMockHookContext('test-bar-chart', 'Test bar chart')
     BarChart.mounted.call(ctx)
 
     const destroySpy = ctx.chart.destroy
