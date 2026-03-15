@@ -1,6 +1,30 @@
 import Chart from "chart.js/auto"
 import { setupCanvas, legendConfig, axisConfig, chartEventName, destroyChart } from "./chart_utils"
 
+// Plugin to draw vertical dashed lines at epoch boundaries
+const epochBoundaryPlugin = {
+  id: "epochBoundary",
+  afterDraw(chart) {
+    const boundaries = chart.config._epochBoundaries
+    if (!boundaries || boundaries.length === 0) return
+    const { ctx, chartArea: { top, bottom }, scales: { x } } = chart
+    ctx.save()
+    ctx.strokeStyle = "rgba(156, 163, 175, 0.5)"
+    ctx.lineWidth = 1
+    ctx.setLineDash([4, 4])
+    for (const idx of boundaries) {
+      const xPos = x.getPixelForValue(idx)
+      if (xPos >= x.left && xPos <= x.right) {
+        ctx.beginPath()
+        ctx.moveTo(xPos, top)
+        ctx.lineTo(xPos, bottom)
+        ctx.stroke()
+      }
+    }
+    ctx.restore()
+  },
+}
+
 const LineChart = {
   mounted() {
     const canvas = setupCanvas(this.el, "Line chart")
@@ -22,6 +46,7 @@ const LineChart = {
               pointRadius: 0,
             }],
       },
+      plugins: [epochBoundaryPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -32,11 +57,25 @@ const LineChart = {
         },
         plugins: {
           legend: legendConfig(),
+          tooltip: {
+            enabled: true,
+            callbacks: {
+              label: (ctx) => {
+                const ds = ctx.dataset
+                const isAnomaly = Array.isArray(ds.pointRadius) && ds.pointRadius[ctx.dataIndex] > 0
+                const val = typeof ctx.parsed.y === "number" ? ctx.parsed.y.toFixed(2) : ctx.parsed.y
+                return isAnomaly ? `⚠ ANOMALY: ${val}` : `${ds.label || "Value"}: ${val}`
+              }
+            }
+          },
         },
       },
     })
 
-    this.handleEvent(chartEventName(this.el), ({ labels, values, anomalies }) => {
+    // Track epoch boundaries for vertical line drawing
+    this.epochBoundaries = []
+
+    this.handleEvent(chartEventName(this.el), ({ labels, values, anomalies, epoch_boundary }) => {
       this.chart.data.labels = labels
       if (Array.isArray(values[0])) {
         values.forEach((v, i) => {
@@ -51,6 +90,13 @@ const LineChart = {
         this.chart.data.datasets[0].pointBackgroundColor = anomalies.map(a =>
           a ? "rgb(239, 68, 68)" : "rgb(99, 102, 241)"
         )
+      }
+
+      if (epoch_boundary != null && !this.epochBoundaries.includes(epoch_boundary)) {
+        this.epochBoundaries.push(epoch_boundary)
+      }
+      if (this.chart.config) {
+        this.chart.config._epochBoundaries = this.epochBoundaries
       }
 
       this.chart.update("none")

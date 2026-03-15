@@ -235,7 +235,7 @@ defmodule NxLiveVizWeb.SentimentLive do
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="space-y-4">
           <form phx-submit="analyze" class="space-y-2">
             <textarea
@@ -315,18 +315,33 @@ defmodule NxLiveVizWeb.SentimentLive do
             </div>
           </div>
 
-          <div :if={@result} class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 space-y-2">
-            <div class="flex justify-between text-sm">
-              <span class="text-green-600 dark:text-green-400">Positive</span>
-              <span class="font-mono">{Float.round(@result.positive * 100, 1)}%</span>
+          <div :if={@result} class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 space-y-3">
+            <div class="space-y-1">
+              <div class="flex justify-between text-sm">
+                <span class="text-green-600 dark:text-green-400">Positive</span>
+                <span class="font-mono">{Float.round(@result.positive * 100, 1)}%</span>
+              </div>
+              <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div class="bg-green-500 h-2 rounded-full transition-all duration-500" style={"width: #{Float.round(@result.positive * 100, 1)}%"}></div>
+              </div>
             </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-red-600 dark:text-red-400">Negative</span>
-              <span class="font-mono">{Float.round(@result.negative * 100, 1)}%</span>
+            <div class="space-y-1">
+              <div class="flex justify-between text-sm">
+                <span class="text-red-600 dark:text-red-400">Negative</span>
+                <span class="font-mono">{Float.round(@result.negative * 100, 1)}%</span>
+              </div>
+              <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div class="bg-red-500 h-2 rounded-full transition-all duration-500" style={"width: #{Float.round(@result.negative * 100, 1)}%"}></div>
+              </div>
             </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-500 dark:text-gray-400">Neutral</span>
-              <span class="font-mono">{Float.round(@result.neutral * 100, 1)}%</span>
+            <div class="space-y-1">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500 dark:text-gray-400">Neutral</span>
+                <span class="font-mono">{Float.round(@result.neutral * 100, 1)}%</span>
+              </div>
+              <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div class="bg-gray-400 h-2 rounded-full transition-all duration-500" style={"width: #{Float.round(@result.neutral * 100, 1)}%"}></div>
+              </div>
             </div>
           </div>
 

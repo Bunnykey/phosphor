@@ -163,7 +163,7 @@ defmodule NxLiveVizWeb.ImageLive do
         </span>
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="space-y-4">
           <form phx-change="validate" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-6 border-2 border-dashed border-gray-300 dark:border-gray-700 text-center"
                 phx-drop-target={@uploads.image.ref}>

@@ -43,13 +43,17 @@ describe('LineChart hook', () => {
     expect(canvas.getAttribute('aria-label')).toBe('Line chart')
   })
 
-  it('registers a handleEvent listener for chart-data', () => {
+  it('registers handleEvent listeners for chart-data and chart-append', () => {
     const ctx = createMockHookContext('test-line-chart', 'Test line chart')
     LineChart.mounted.call(ctx)
 
-    expect(ctx.handleEvent).toHaveBeenCalledTimes(1)
+    expect(ctx.handleEvent).toHaveBeenCalledTimes(2)
     expect(ctx.handleEvent).toHaveBeenCalledWith(
       'chart-data:test-line-chart',
+      expect.any(Function)
+    )
+    expect(ctx.handleEvent).toHaveBeenCalledWith(
+      'chart-append:test-line-chart',
       expect.any(Function)
     )
   })

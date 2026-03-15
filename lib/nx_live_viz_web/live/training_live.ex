@@ -153,6 +153,10 @@ defmodule NxLiveVizWeb.TrainingLive do
     display_accuracies = Enum.reverse(accuracies)
     labels = chart_labels(losses)
 
+    # Track epoch boundaries for vertical line markers
+    epoch_changed = metrics.epoch != socket.assigns.current_epoch and socket.assigns.current_epoch > 0
+    epoch_boundary = if epoch_changed, do: length(display_losses) - 1, else: nil
+
     socket =
       socket
       |> assign(
@@ -165,11 +169,13 @@ defmodule NxLiveVizWeb.TrainingLive do
       )
       |> push_event("chart-data:loss-chart", %{
         labels: labels,
-        values: display_losses
+        values: display_losses,
+        epoch_boundary: epoch_boundary
       })
       |> push_event("chart-data:accuracy-chart", %{
         labels: labels,
-        values: display_accuracies
+        values: display_accuracies,
+        epoch_boundary: epoch_boundary
       })
 
     save_training_snapshot(socket, :training)
@@ -406,7 +412,7 @@ defmodule NxLiveVizWeb.TrainingLive do
         Epoch: {@current_epoch} | Iteration: {@current_iteration}
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div id="loss-chart" phx-hook="LineChart" phx-update="ignore" data-label="Loss" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
           <canvas></canvas>
         </div>
