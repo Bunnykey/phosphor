@@ -12,9 +12,11 @@ defmodule NxLiveViz do
 
     # Activate the requested source
     case source do
+      :sine -> NxLiveViz.Data.Simulator.set_pattern(:sine)
+      :ecg -> NxLiveViz.Data.Simulator.set_pattern(:ecg)
+      :network -> NxLiveViz.Data.Simulator.set_pattern(:network)
       :crypto -> NxLiveViz.Data.CryptoAPI.activate()
       :system -> NxLiveViz.Data.SystemMetrics.activate()
-      :simulator -> :ok  # Simulator is always running
       _ -> {:error, :unknown_source}
     end
   end

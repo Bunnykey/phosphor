@@ -3,6 +3,49 @@ defmodule NxLiveVizWeb.SentimentLive do
 
   alias NxLiveViz.ML.Sentiment
 
+  @text_datasets %{
+    movie: %{
+      label: "Movie Reviews",
+      texts: [
+        "This film is a masterpiece. The acting, direction, and cinematography are all top-notch.",
+        "Worst movie I have ever seen. Complete waste of time and money.",
+        "A decent film with some good moments, but the plot felt rushed in the second half.",
+        "The visual effects were stunning but couldn't save the weak storyline.",
+        "An absolute gem! Had me laughing and crying throughout."
+      ]
+    },
+    product: %{
+      label: "Product Reviews",
+      texts: [
+        "이 제품 정말 좋아요! 배송도 빠르고 품질도 최고입니다.",
+        "Terrible quality. Broke after one week of use. Do not recommend.",
+        "가격 대비 괜찮은 제품입니다. 다만 배터리 수명이 좀 짧아요.",
+        "Best purchase I've made this year. Worth every penny.",
+        "Average product, nothing special. Works as described."
+      ]
+    },
+    social: %{
+      label: "Social Media",
+      texts: [
+        "Just had the best coffee of my life! ☕ Highly recommend this place!",
+        "오늘 날씨 진짜 최악이다... 비도 오고 바람도 불고 😩",
+        "Can't believe how fast technology is advancing. What a time to be alive!",
+        "서비스가 너무 불친절했어요. 다시는 안 갈 거예요.",
+        "Another day, another meeting that could have been an email."
+      ]
+    },
+    news: %{
+      label: "News Headlines",
+      texts: [
+        "Global markets surge as inflation fears ease amid positive economic data.",
+        "Major earthquake strikes coastal region, rescue operations underway.",
+        "Tech giant announces record quarterly earnings, stock hits all-time high.",
+        "Scientists discover breakthrough treatment for rare genetic disorder.",
+        "Political tensions rise as trade negotiations stall between major economies."
+      ]
+    }
+  }
+
   @impl true
   def mount(_params, _session, socket) do
     {history, sentiment_scores, sentiment_trend} = seed_sentiment_data()
@@ -14,7 +57,9 @@ defmodule NxLiveVizWeb.SentimentLive do
         result: sentiment_scores,
         history: history,
         analyzing: false,
-        error: nil
+        error: nil,
+        selected_dataset: nil,
+        text_datasets: @text_datasets
       )
 
     socket =
@@ -64,6 +109,14 @@ defmodule NxLiveVizWeb.SentimentLive do
 
   def handle_event("try-sample", %{"text" => text}, socket) do
     {:noreply, assign(socket, text: String.slice(text, 0, 10_000))}
+  end
+
+  def handle_event("select-dataset", %{"dataset" => ""}, socket) do
+    {:noreply, assign(socket, selected_dataset: nil)}
+  end
+
+  def handle_event("select-dataset", %{"dataset" => dataset}, socket) do
+    {:noreply, assign(socket, selected_dataset: String.to_existing_atom(dataset))}
   end
 
   @impl true
@@ -171,6 +224,17 @@ defmodule NxLiveVizWeb.SentimentLive do
       <div>
         <h2 class="text-xl font-semibold">Sentiment Analysis</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400">Multilingual mBERT — enter text to analyze (supports Korean)</p>
+        <div class="flex flex-wrap gap-2 text-xs mt-2">
+          <span class="px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium">
+            mBERT Multilingual
+          </span>
+          <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+            Seq Length: 512
+          </span>
+          <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+            Languages: EN, KO, DE, FR, ES, IT
+          </span>
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -229,6 +293,28 @@ defmodule NxLiveVizWeb.SentimentLive do
             >
               Mixed
             </button>
+          </div>
+
+          <div class="mt-4 space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-gray-500 dark:text-gray-400">Datasets:</span>
+              <select name="dataset" phx-change="select-dataset" class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                <option value="">Select a dataset...</option>
+                <option :for={{key, ds} <- @text_datasets} value={key}>{ds.label}</option>
+              </select>
+            </div>
+
+            <div :if={@selected_dataset} class="max-h-32 overflow-y-auto space-y-1">
+              <button
+                :for={text <- @text_datasets[@selected_dataset].texts}
+                type="button"
+                phx-click="try-sample"
+                phx-value-text={text}
+                class="block w-full text-left text-xs px-3 py-1.5 rounded bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 truncate transition-colors"
+              >
+                {String.slice(text, 0, 80)}{if String.length(text) > 80, do: "...", else: ""}
+              </button>
+            </div>
           </div>
 
           <div :if={@result} class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 space-y-2">

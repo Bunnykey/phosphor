@@ -1,16 +1,35 @@
 defmodule NxLiveViz.ML.Trainer do
   @moduledoc "MNIST trainer with live metrics broadcasting."
 
-  def build_model do
-    Axon.input("input", shape: {nil, 784})
-    |> Axon.dense(128, activation: :relu)
-    |> Axon.dropout(rate: 0.2)
-    |> Axon.dense(64, activation: :relu)
-    |> Axon.dense(10, activation: :softmax)
+  def build_model(dataset \\ :mnist) do
+    case dataset do
+      :xor ->
+        Axon.input("input", shape: {nil, 2})
+        |> Axon.dense(4, activation: :relu)
+        |> Axon.dense(2, activation: :softmax)
+
+      _ ->
+        # MNIST / Fashion-MNIST model (784 -> 128 -> 64 -> 10)
+        Axon.input("input", shape: {nil, 784})
+        |> Axon.dense(128, activation: :relu)
+        |> Axon.dropout(rate: 0.2)
+        |> Axon.dense(64, activation: :relu)
+        |> Axon.dense(10, activation: :softmax)
+    end
   end
 
-  def generate_dummy_data(batch_size \\ 32) do
-    # Synthetic MNIST-like data for demo purposes
+  def generate_dummy_data(opts \\ []) do
+    dataset = Keyword.get(opts, :dataset, :mnist)
+    batch_size = Keyword.get(opts, :batch_size, 32)
+
+    case dataset do
+      :mnist -> generate_mnist_data(batch_size)
+      :fashion -> generate_fashion_data(batch_size)
+      :xor -> generate_xor_data(batch_size)
+    end
+  end
+
+  defp generate_mnist_data(batch_size) do
     key = Nx.Random.key(42)
 
     Stream.unfold(key, fn key ->
@@ -21,15 +40,44 @@ defmodule NxLiveViz.ML.Trainer do
     end)
   end
 
+  defp generate_fashion_data(batch_size) do
+    # Fashion-MNIST-like: bimodal distribution with sharper features
+    key = Nx.Random.key(99)
+
+    Stream.unfold(key, fn key ->
+      {input, key} = Nx.Random.normal(key, shape: {batch_size, 784})
+      input = Nx.abs(input) |> Nx.multiply(0.3)
+      {label_indices, key} = Nx.Random.randint(key, 0, 10, shape: {batch_size})
+      labels = Nx.equal(Nx.iota({batch_size, 10}, axis: 1), Nx.reshape(label_indices, {batch_size, 1})) |> Nx.as_type(:f32)
+      {{input, labels}, key}
+    end)
+  end
+
+  defp generate_xor_data(batch_size) do
+    # XOR pattern: 2D input, 2 classes
+    key = Nx.Random.key(77)
+
+    Stream.unfold(key, fn key ->
+      {input, key} = Nx.Random.uniform(key, shape: {batch_size, 2})
+      # XOR logic: class 1 if (x>0.5 XOR y>0.5)
+      x_high = Nx.greater(input[[.., 0]], 0.5)
+      y_high = Nx.greater(input[[.., 1]], 0.5)
+      xor = Nx.not_equal(x_high, y_high) |> Nx.as_type(:f32)
+      labels = Nx.stack([Nx.subtract(1, xor), xor], axis: 1)
+      {{input, labels}, key}
+    end)
+  end
+
   def train(opts \\ []) do
     topic = Keyword.get(opts, :topic, "training:metrics")
     epochs = Keyword.get(opts, :epochs, 10)
     lr = Keyword.get(opts, :learning_rate, 1.0e-3)
     batch_size = Keyword.get(opts, :batch_size, 32)
     iterations = Keyword.get(opts, :iterations, 50)
+    dataset = Keyword.get(opts, :dataset, :mnist)
 
-    model = build_model()
-    data = generate_dummy_data(batch_size)
+    model = build_model(dataset)
+    data = generate_dummy_data(dataset: dataset, batch_size: batch_size)
 
     model
     |> Axon.Loop.trainer(

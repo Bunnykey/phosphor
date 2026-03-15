@@ -4,6 +4,10 @@ defmodule NxLiveVizWeb.TrainingLive do
   alias NxLiveViz.ML.Trainer
   alias NxLiveViz.ML.TrainingStore
 
+  @dataset_map %{"mnist" => :mnist, "fashion" => :fashion, "xor" => :xor}
+  @dataset_labels %{mnist: "MNIST (Random)", fashion: "Fashion-MNIST", xor: "XOR Pattern"}
+  @architecture_labels %{mnist: "784→128→64→10", fashion: "784→128→64→10", xor: "2→4→2"}
+
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
@@ -26,6 +30,9 @@ defmodule NxLiveVizWeb.TrainingLive do
             epochs: 10,
             learning_rate: 0.001,
             batch_size: 32,
+            dataset: :mnist,
+            dataset_label: @dataset_labels[:mnist],
+            architecture_label: @architecture_labels[:mnist],
             losses: saved.loss_history,
             accuracies: saved.accuracy_history,
             current_epoch: saved.current_epoch,
@@ -44,7 +51,17 @@ defmodule NxLiveVizWeb.TrainingLive do
         :error ->
           # No persisted state — use seed data
           socket
-          |> assign(training: false, task_ref: nil, task_pid: nil, epochs: 10, learning_rate: 0.001, batch_size: 32)
+          |> assign(
+            training: false,
+            task_ref: nil,
+            task_pid: nil,
+            epochs: 10,
+            learning_rate: 0.001,
+            batch_size: 32,
+            dataset: :mnist,
+            dataset_label: @dataset_labels[:mnist],
+            architecture_label: @architecture_labels[:mnist]
+          )
           |> apply_seed_state()
       end
 
@@ -62,7 +79,8 @@ defmodule NxLiveVizWeb.TrainingLive do
         Trainer.train(
           epochs: socket.assigns.epochs,
           learning_rate: socket.assigns.learning_rate,
-          batch_size: socket.assigns.batch_size
+          batch_size: socket.assigns.batch_size,
+          dataset: socket.assigns.dataset
         )
       end)
 
@@ -102,6 +120,21 @@ defmodule NxLiveVizWeb.TrainingLive do
     batch_size = safe_int(params["batch_size"], socket.assigns.batch_size) |> max(8) |> min(128)
 
     {:noreply, assign(socket, epochs: epochs, learning_rate: lr, batch_size: batch_size)}
+  end
+
+  def handle_event("change-dataset", %{"dataset" => dataset}, socket) do
+    case Map.fetch(@dataset_map, dataset) do
+      {:ok, ds} ->
+        {:noreply,
+         assign(socket,
+           dataset: ds,
+           dataset_label: @dataset_labels[ds],
+           architecture_label: @architecture_labels[ds]
+         )}
+
+      :error ->
+        {:noreply, socket}
+    end
   end
 
   @impl true
@@ -282,6 +315,20 @@ defmodule NxLiveVizWeb.TrainingLive do
         <div>
           <h2 class="text-xl font-semibold">Training Visualization</h2>
           <p class="text-sm text-gray-500 dark:text-gray-400">MNIST classifier — watch the model learn</p>
+          <div class="flex flex-wrap gap-2 text-xs mt-2">
+            <span class="px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium">
+              {@dataset_label}
+            </span>
+            <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+              {@architecture_label}
+            </span>
+            <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+              Optimizer: Adam
+            </span>
+            <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+              Loss: CCE
+            </span>
+          </div>
         </div>
         <div class="flex gap-2">
           <button
@@ -305,6 +352,15 @@ defmodule NxLiveVizWeb.TrainingLive do
             Reset
           </button>
         </div>
+      </div>
+
+      <div class="flex items-center gap-2 mb-4">
+        <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Dataset:</span>
+        <select name="dataset" phx-change="change-dataset" class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300" disabled={@training}>
+          <option value="mnist" selected={@dataset == :mnist}>MNIST (Random)</option>
+          <option value="fashion" selected={@dataset == :fashion}>Fashion-MNIST</option>
+          <option value="xor" selected={@dataset == :xor}>XOR Pattern</option>
+        </select>
       </div>
 
       <!-- Hyperparameter controls -->

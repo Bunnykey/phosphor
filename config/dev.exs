@@ -10,7 +10,7 @@ config :nx_live_viz, NxLiveVizWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {127, 0, 0, 1}],
-  check_origin: false,
+  check_origin: ["//localhost", "//phosphor.dailymicrotools.com"],
   code_reloader: true,
   debug_errors: true,
   secret_key_base: "Oye07ON4LXFYMd6nqxd97tfD8exydkA5ClPzfZKSDucVzbeIC7+nCrJ+a5t/6Qo1",

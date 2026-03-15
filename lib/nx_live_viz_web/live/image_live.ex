@@ -146,6 +146,21 @@ defmodule NxLiveVizWeb.ImageLive do
         <p class="text-sm text-gray-500 dark:text-gray-400">ResNet-50 — drag & drop an image</p>
       </div>
 
+      <div class="flex flex-wrap gap-2 text-xs">
+        <span class="px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium">
+          ResNet-50
+        </span>
+        <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+          Top-K: 5
+        </span>
+        <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+          Batch: 4
+        </span>
+        <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+          Max: 10MB
+        </span>
+      </div>
+
       <div class="grid grid-cols-2 gap-4">
         <div class="space-y-4">
           <form phx-change="validate" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-6 border-2 border-dashed border-gray-300 dark:border-gray-700 text-center"

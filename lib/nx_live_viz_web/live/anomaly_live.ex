@@ -9,6 +9,22 @@ defmodule NxLiveVizWeb.AnomalyLive do
   @seed_count 30
   @anomaly_indices [7, 15, 22, 28]
 
+  @source_map %{
+    "sine" => :sine,
+    "ecg" => :ecg,
+    "network" => :network,
+    "crypto" => :crypto,
+    "system" => :system
+  }
+
+  @source_labels %{
+    sine: "Sine Wave",
+    ecg: "ECG Heartbeat",
+    network: "Network Traffic",
+    crypto: "Crypto API (BTC)",
+    system: "System Metrics"
+  }
+
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
@@ -32,7 +48,10 @@ defmodule NxLiveVizWeb.AnomalyLive do
         data_points: initial_points,
         anomalies: initial_anomalies,
         detector: detector,
-        source: :simulator,
+        source: :sine,
+        source_label: @source_labels[:sine],
+        window_size: @window_size,
+        max_points: @max_points,
         anomaly_count: initial_anomaly_count
       )
 
@@ -93,14 +112,20 @@ defmodule NxLiveVizWeb.AnomalyLive do
     {:noreply, socket}
   end
 
-  @source_map %{"simulator" => :simulator, "crypto" => :crypto, "system" => :system}
-
   @impl true
   def handle_event("change-source", %{"source" => source}, socket) do
     case Map.fetch(@source_map, source) do
       {:ok, source_atom} ->
         NxLiveViz.set_data_source(source_atom)
-        {:noreply, assign(socket, source: source_atom, data_points: [], anomalies: [], anomaly_count: 0)}
+
+        {:noreply,
+         assign(socket,
+           source: source_atom,
+           source_label: @source_labels[source_atom],
+           data_points: [],
+           anomalies: [],
+           anomaly_count: 0
+         )}
 
       :error ->
         {:noreply, socket}
@@ -151,11 +176,28 @@ defmodule NxLiveVizWeb.AnomalyLive do
             name="source"
             class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-3 py-1 text-sm text-gray-900 dark:text-gray-100"
           >
-            <option value="simulator" selected={@source == :simulator}>Simulator</option>
-            <option value="crypto" selected={@source == :crypto}>Crypto API</option>
+            <option value="sine" selected={@source == :sine}>Sine Wave</option>
+            <option value="ecg" selected={@source == :ecg}>ECG Heartbeat</option>
+            <option value="network" selected={@source == :network}>Network Traffic</option>
+            <option value="crypto" selected={@source == :crypto}>Crypto API (BTC)</option>
             <option value="system" selected={@source == :system}>System Metrics</option>
           </select>
         </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2 text-xs">
+        <span class="px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium">
+          {@source_label}
+        </span>
+        <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+          Window: {@window_size}
+        </span>
+        <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+          Threshold: 0.5
+        </span>
+        <span class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+          Max: {@max_points}
+        </span>
       </div>
 
       <div id="anomaly-chart" phx-hook="LineChart" phx-update="ignore" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-80">

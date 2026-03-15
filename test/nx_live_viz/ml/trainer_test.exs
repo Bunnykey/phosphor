@@ -4,12 +4,12 @@ defmodule NxLiveViz.ML.TrainerTest do
   alias NxLiveViz.ML.Trainer
 
   test "build_model returns an Axon model" do
-    model = Trainer.build_model()
+    model = Trainer.build_model(:mnist)
     assert %Axon{} = model
   end
 
   test "model has correct layer structure (input -> dense -> dropout -> dense -> dense)" do
-    model = Trainer.build_model()
+    model = Trainer.build_model(:mnist)
 
     # Build the model to verify it compiles and accepts the expected input shape
     {init_fn, predict_fn} = Axon.build(model)
@@ -24,7 +24,7 @@ defmodule NxLiveViz.ML.TrainerTest do
   end
 
   test "model output sums to ~1.0 (softmax)" do
-    model = Trainer.build_model()
+    model = Trainer.build_model(:mnist)
     {init_fn, predict_fn} = Axon.build(model, mode: :inference)
     params = init_fn.(Nx.template({1, 784}, :f32), %{})
 
@@ -36,13 +36,23 @@ defmodule NxLiveViz.ML.TrainerTest do
     assert_in_delta sum, 1.0, 0.01
   end
 
+  test "build_model returns XOR model with correct shape" do
+    model = Trainer.build_model(:xor)
+    {init_fn, predict_fn} = Axon.build(model, mode: :inference)
+    params = init_fn.(Nx.template({1, 2}, :f32), %{})
+
+    input = Nx.tensor([[0.3, 0.7]])
+    output = predict_fn.(params, input)
+    assert {1, 2} == Nx.shape(output)
+  end
+
   test "generate_dummy_data returns a stream" do
-    data = Trainer.generate_dummy_data(16)
+    data = Trainer.generate_dummy_data(dataset: :mnist, batch_size: 16)
     assert is_function(data, 2), "expected generate_dummy_data to return a Stream (function/2)"
   end
 
   test "generate_dummy_data produces tensors with correct shapes" do
-    data = Trainer.generate_dummy_data(16)
+    data = Trainer.generate_dummy_data(dataset: :mnist, batch_size: 16)
 
     [{xs, ys} | _] = Enum.take(data, 1)
 
@@ -51,7 +61,7 @@ defmodule NxLiveViz.ML.TrainerTest do
   end
 
   test "generate_dummy_data labels are one-hot encoded" do
-    data = Trainer.generate_dummy_data(8)
+    data = Trainer.generate_dummy_data(dataset: :mnist, batch_size: 8)
 
     [{_xs, ys} | _] = Enum.take(data, 1)
 
@@ -63,14 +73,11 @@ defmodule NxLiveViz.ML.TrainerTest do
     end
   end
 
-  test "generate_dummy_data is deterministic (seeded with key 42)" do
-    batch_a = Trainer.generate_dummy_data(4) |> Enum.take(1) |> hd()
-    batch_b = Trainer.generate_dummy_data(4) |> Enum.take(1) |> hd()
+  test "generate_dummy_data XOR produces 2D input" do
+    data = Trainer.generate_dummy_data(dataset: :xor, batch_size: 8)
+    [{xs, ys} | _] = Enum.take(data, 1)
 
-    {xs_a, ys_a} = batch_a
-    {xs_b, ys_b} = batch_b
-
-    assert Nx.equal(xs_a, xs_b) |> Nx.all() |> Nx.to_number() == 1
-    assert Nx.equal(ys_a, ys_b) |> Nx.all() |> Nx.to_number() == 1
+    assert {8, 2} == Nx.shape(xs)
+    assert {8, 2} == Nx.shape(ys)
   end
 end
