@@ -16,7 +16,7 @@ defmodule NxLiveVizWeb.TrainingLive do
           # Restore persisted training state
           display_losses = Enum.reverse(saved.loss_history)
           display_accuracies = Enum.reverse(saved.accuracy_history)
-          labels = Enum.map(1..length(saved.loss_history), &to_string/1)
+          labels = chart_labels(saved.loss_history)
 
           socket
           |> assign(
@@ -110,7 +110,7 @@ defmodule NxLiveVizWeb.TrainingLive do
     accuracies = [metrics.accuracy | socket.assigns.accuracies]
     display_losses = Enum.reverse(losses)
     display_accuracies = Enum.reverse(accuracies)
-    labels = Enum.map(1..length(losses), &to_string/1)
+    labels = chart_labels(losses)
 
     socket =
       socket
@@ -183,8 +183,7 @@ defmodule NxLiveVizWeb.TrainingLive do
     {seed_losses, seed_accuracies, seed_histogram} = seed_training_data()
     reversed_losses = Enum.reverse(seed_losses)
     reversed_accuracies = Enum.reverse(seed_accuracies)
-    loss_labels = Enum.map(1..length(reversed_losses), &to_string/1)
-    acc_labels = Enum.map(1..length(reversed_accuracies), &to_string/1)
+    labels = chart_labels(reversed_losses)
 
     socket
     |> assign(
@@ -197,10 +196,12 @@ defmodule NxLiveVizWeb.TrainingLive do
       current_accuracy: 0.95,
       status: :completed
     )
-    |> push_event("chart-data:loss-chart", %{labels: loss_labels, values: reversed_losses})
-    |> push_event("chart-data:accuracy-chart", %{labels: acc_labels, values: reversed_accuracies})
+    |> push_event("chart-data:loss-chart", %{labels: labels, values: reversed_losses})
+    |> push_event("chart-data:accuracy-chart", %{labels: labels, values: reversed_accuracies})
     |> push_event("chart-data:weight-histogram", seed_histogram)
   end
+
+  defp chart_labels(list), do: Enum.map(1..length(list), &to_string/1)
 
   defp safe_int(value, default) do
     case Integer.parse(to_string(value)) do

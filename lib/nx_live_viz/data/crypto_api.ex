@@ -3,6 +3,8 @@ defmodule NxLiveViz.Data.CryptoAPI do
 
   use GenServer
 
+  require Logger
+
   @interval 2_000
   @api_url "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
 
@@ -56,7 +58,9 @@ defmodule NxLiveViz.Data.CryptoAPI do
         schedule_fetch()
         {:noreply, %{state | last_value: price}}
 
-      {:error, _reason} ->
+      {:error, reason} ->
+        Logger.warning("CryptoAPI fetch failed: #{inspect(reason)}")
+
         if state.last_value do
           point = %{
             value: state.last_value * 1.0,

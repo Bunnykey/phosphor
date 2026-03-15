@@ -94,26 +94,10 @@ defmodule NxLiveVizWeb.AnomalyLive do
   end
 
   @impl true
-  def handle_event("change-source", %{"source" => "crypto"}, socket) do
-    NxLiveViz.Data.SystemMetrics.deactivate()
-    NxLiveViz.Data.CryptoAPI.activate()
-    {:noreply, assign(socket, source: :crypto, data_points: [], anomalies: [], anomaly_count: 0)}
-  end
-
-  def handle_event("change-source", %{"source" => "system"}, socket) do
-    NxLiveViz.Data.CryptoAPI.deactivate()
-    NxLiveViz.Data.SystemMetrics.activate()
-    {:noreply, assign(socket, source: :system, data_points: [], anomalies: [], anomaly_count: 0)}
-  end
-
-  def handle_event("change-source", %{"source" => "simulator"}, socket) do
-    NxLiveViz.Data.CryptoAPI.deactivate()
-    NxLiveViz.Data.SystemMetrics.deactivate()
-    {:noreply, assign(socket, source: :simulator, data_points: [], anomalies: [], anomaly_count: 0)}
-  end
-
-  def handle_event("change-source", %{"source" => _source}, socket) do
-    {:noreply, socket}
+  def handle_event("change-source", %{"source" => source}, socket) do
+    source_atom = String.to_existing_atom(source)
+    NxLiveViz.set_data_source(source_atom)
+    {:noreply, assign(socket, source: source_atom, data_points: [], anomalies: [], anomaly_count: 0)}
   end
 
   defp seed_data do

@@ -163,17 +163,13 @@ defmodule NxLiveVizWeb.ImageLive do
             Classifying...
           </div>
 
-          <%= if @error do %>
-            <div class="mt-4 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-red-600 dark:text-red-400 text-sm">
-              {@error}
-            </div>
-          <% end %>
+          <div :if={@error} class="mt-4 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-red-600 dark:text-red-400 text-sm">
+            {@error}
+          </div>
 
           <div :if={@predictions != []} class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4">
             <h3 class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Results</h3>
-            <%= if @preview_url do %>
-              <img src={@preview_url} class="max-w-xs rounded-lg mb-4" />
-            <% end %>
+            <img :if={@preview_url} src={@preview_url} class="max-w-xs rounded-lg mb-4" />
             <div :for={pred <- @predictions} class="flex justify-between text-sm py-1">
               <span class="text-gray-700 dark:text-gray-300 truncate max-w-[200px]">{pred.label}</span>
               <span class="text-indigo-600 dark:text-indigo-400 font-mono">{Float.round(pred.score * 100, 1)}%</span>

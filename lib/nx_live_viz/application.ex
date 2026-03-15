@@ -5,14 +5,15 @@ defmodule NxLiveViz.Application do
 
   @impl true
   def start(_type, _args) do
-    NxLiveViz.ML.TrainingStore.init()
-
     # Pre-train anomaly detector at startup (runs once)
     Task.start(fn -> NxLiveViz.ML.AnomalyDetector.cached_detector(input_size: 20) end)
 
     children = [
       NxLiveVizWeb.Telemetry,
       {Phoenix.PubSub, name: NxLiveViz.PubSub},
+
+      # State stores
+      NxLiveViz.ML.TrainingStore,
 
       # Data sources
       NxLiveViz.Data.Simulator,

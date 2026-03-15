@@ -35,3 +35,8 @@ nx_live_viz-*.tar
 npm-debug.log
 /assets/node_modules/
 
+.desloppify/
+ai-slop-report.json
+scorecard.png
+tdd-demo.html
+test-results.html

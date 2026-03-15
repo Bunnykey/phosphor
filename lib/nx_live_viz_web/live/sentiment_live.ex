@@ -50,8 +50,12 @@ defmodule NxLiveVizWeb.SentimentLive do
         pid = self()
 
         Task.start(fn ->
-          result = Sentiment.analyze(text)
-          send(pid, {:sentiment_result, text, result})
+          try do
+            result = Sentiment.analyze(text)
+            send(pid, {:sentiment_result, text, result})
+          rescue
+            e -> send(pid, {:sentiment_error, Exception.message(e)})
+          end
         end)
 
         {:noreply, socket}
@@ -60,6 +64,10 @@ defmodule NxLiveVizWeb.SentimentLive do
 
   def handle_event("try-sample", %{"text" => text}, socket) do
     {:noreply, assign(socket, text: String.slice(text, 0, 10_000))}
+  end
+
+  def handle_info({:sentiment_error, _reason}, socket) do
+    {:noreply, assign(socket, analyzing: false, error: "Analysis failed. Please try again.")}
   end
 
   @impl true
@@ -170,11 +178,9 @@ defmodule NxLiveVizWeb.SentimentLive do
             </button>
           </form>
 
-          <%= if @error do %>
-            <div class="mt-2 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-red-600 dark:text-red-400 text-sm">
-              {@error}
-            </div>
-          <% end %>
+          <div :if={@error} class="mt-2 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-red-600 dark:text-red-400 text-sm">
+            {@error}
+          </div>
 
           <div class="flex flex-wrap gap-2">
             <span class="text-xs text-gray-500 self-center">Quick try:</span>

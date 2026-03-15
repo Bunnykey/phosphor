@@ -1,40 +1,31 @@
 defmodule NxLiveViz.ML.TrainingStore do
   @moduledoc "ETS-based store for persisting training visualization state."
+  use GenServer
 
   @table :training_state
 
-  def init do
-    if :ets.whereis(@table) == :undefined do
-      :ets.new(@table, [:named_table, :protected, :set])
-    end
+  def start_link(_opts) do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  end
 
-    :ok
+  @impl true
+  def init(_) do
+    table = :ets.new(@table, [:named_table, :public, :set])
+    {:ok, %{table: table}}
   end
 
   def save(state) do
-    try do
-      :ets.insert(@table, {:latest, state})
-    rescue
-      ArgumentError -> :error
-    end
+    :ets.insert(@table, {:latest, state})
   end
 
   def load do
-    try do
-      case :ets.lookup(@table, :latest) do
-        [{:latest, state}] -> {:ok, state}
-        [] -> :error
-      end
-    rescue
-      ArgumentError -> :error
+    case :ets.lookup(@table, :latest) do
+      [{:latest, state}] -> {:ok, state}
+      [] -> :error
     end
   end
 
   def clear do
-    try do
-      :ets.delete(@table, :latest)
-    rescue
-      ArgumentError -> :ok
-    end
+    :ets.delete(@table, :latest)
   end
 end
