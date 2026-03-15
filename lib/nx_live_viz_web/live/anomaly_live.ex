@@ -40,7 +40,7 @@ defmodule NxLiveVizWeb.AnomalyLive do
       if connected?(socket) and initial_points != [] do
         display_points = Enum.reverse(initial_points)
         display_anomalies = Enum.reverse(initial_anomalies)
-        labels = Enum.map(1..length(display_points), &to_string/1)
+        labels = chart_labels(display_points)
 
         push_event(socket, "chart-data:anomaly-chart", %{
           labels: labels,
@@ -79,7 +79,7 @@ defmodule NxLiveVizWeb.AnomalyLive do
 
     display_points = Enum.reverse(points)
     display_anomalies = Enum.reverse(anomalies)
-    labels = Enum.map(1..length(display_points), &to_string/1)
+    labels = chart_labels(display_points)
 
     socket =
       socket
@@ -93,11 +93,18 @@ defmodule NxLiveVizWeb.AnomalyLive do
     {:noreply, socket}
   end
 
+  @source_map %{"simulator" => :simulator, "crypto" => :crypto, "system" => :system}
+
   @impl true
   def handle_event("change-source", %{"source" => source}, socket) do
-    source_atom = String.to_existing_atom(source)
-    NxLiveViz.set_data_source(source_atom)
-    {:noreply, assign(socket, source: source_atom, data_points: [], anomalies: [], anomaly_count: 0)}
+    case Map.fetch(@source_map, source) do
+      {:ok, source_atom} ->
+        NxLiveViz.set_data_source(source_atom)
+        {:noreply, assign(socket, source: source_atom, data_points: [], anomalies: [], anomaly_count: 0)}
+
+      :error ->
+        {:noreply, socket}
+    end
   end
 
   defp seed_data do
@@ -122,6 +129,9 @@ defmodule NxLiveVizWeb.AnomalyLive do
       %{value: value, timestamp: timestamp, anomaly: is_anomaly}
     end)
   end
+
+  defp chart_labels([]), do: []
+  defp chart_labels(list), do: Enum.map(1..length(list), &to_string/1)
 
   @impl true
   def render(assigns) do

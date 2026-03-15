@@ -201,6 +201,7 @@ defmodule NxLiveVizWeb.TrainingLive do
     |> push_event("chart-data:weight-histogram", seed_histogram)
   end
 
+  defp chart_labels([]), do: []
   defp chart_labels(list), do: Enum.map(1..length(list), &to_string/1)
 
   defp safe_int(value, default) do

@@ -1,11 +1,5 @@
 defmodule NxLiveViz do
-  @moduledoc """
-  NxLiveViz keeps the contexts that define your domain
-  and business logic.
-
-  Contexts are also responsible for managing your data, regardless
-  if it comes from the database, an external API or others.
-  """
+  @moduledoc false
 
   def broadcast_sensor_data(point) do
     Phoenix.PubSub.broadcast(NxLiveViz.PubSub, "sensor:data", {:sensor_data, point})
@@ -21,7 +15,7 @@ defmodule NxLiveViz do
       :crypto -> NxLiveViz.Data.CryptoAPI.activate()
       :system -> NxLiveViz.Data.SystemMetrics.activate()
       :simulator -> :ok  # Simulator is always running
-      _ -> :ok
+      _ -> {:error, :unknown_source}
     end
   end
 end

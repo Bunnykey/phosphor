@@ -10,12 +10,12 @@ defmodule NxLiveViz.ML.TrainingStore do
 
   @impl true
   def init(_) do
-    table = :ets.new(@table, [:named_table, :public, :set])
+    table = :ets.new(@table, [:named_table, :protected, :set])
     {:ok, %{table: table}}
   end
 
   def save(state) do
-    :ets.insert(@table, {:latest, state})
+    GenServer.cast(__MODULE__, {:save, state})
   end
 
   def load do
@@ -23,9 +23,22 @@ defmodule NxLiveViz.ML.TrainingStore do
       [{:latest, state}] -> {:ok, state}
       [] -> :error
     end
+  rescue
+    ArgumentError -> :error
   end
 
   def clear do
+    GenServer.cast(__MODULE__, :clear)
+  end
+
+  @impl true
+  def handle_cast({:save, state}, s) do
+    :ets.insert(@table, {:latest, state})
+    {:noreply, s}
+  end
+
+  def handle_cast(:clear, s) do
     :ets.delete(@table, :latest)
+    {:noreply, s}
   end
 end

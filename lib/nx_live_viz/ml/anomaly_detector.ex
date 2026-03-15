@@ -80,7 +80,7 @@ defmodule NxLiveViz.ML.AnomalyDetector do
     # Generate ~200 normal data points: sine wave + small noise, no anomalies
     normal_data =
       for i <- 0..199 do
-        :math.sin(i / 3.0) * 10 + 50 + (:rand.uniform() * 4 - 2)
+        NxLiveViz.Data.Simulator.normal_value(i)
       end
 
     state = init_params(input_size: input_size)

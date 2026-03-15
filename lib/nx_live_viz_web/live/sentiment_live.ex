@@ -66,6 +66,7 @@ defmodule NxLiveVizWeb.SentimentLive do
     {:noreply, assign(socket, text: String.slice(text, 0, 10_000))}
   end
 
+  @impl true
   def handle_info({:sentiment_error, _reason}, socket) do
     {:noreply, assign(socket, analyzing: false, error: "Analysis failed. Please try again.")}
   end
