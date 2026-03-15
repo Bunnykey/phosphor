@@ -66,19 +66,18 @@ defmodule NxLiveVizWeb.OverviewLive do
         >
           <h2 class="text-base font-semibold text-gray-900 dark:text-white">Sentiment Analysis</h2>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">BERT · Bumblebee</p>
-          <svg viewBox="0 0 200 70" class="w-full h-12 mt-3" aria-hidden="true">
-            <%!-- Gauge arc background --%>
-            <path d="M 30 55 A 70 70 0 0 1 170 55" fill="none" stroke="#e5e7eb" stroke-width="8" stroke-linecap="round" />
-            <%!-- Gauge arc fill (82% positive → mostly green) --%>
-            <path d="M 30 55 A 70 70 0 0 1 148 22" fill="none" stroke="#22c55e" stroke-width="8" stroke-linecap="round" />
-            <%!-- Needle --%>
-            <line x1="100" y1="55" x2="140" y2="28" stroke="#374151" stroke-width="2" stroke-linecap="round" />
-            <circle cx="100" cy="55" r="3" fill="#374151" />
-            <%!-- Labels --%>
-            <text x="22" y="65" font-size="8" fill="#ef4444">neg</text>
-            <text x="166" y="65" font-size="8" fill="#22c55e">pos</text>
-            <text x="100" y="15" text-anchor="middle" font-size="10" fill="#374151" font-weight="600">82%</text>
-          </svg>
+          <div class="mt-3" aria-hidden="true">
+            <div class="flex h-3 rounded-full overflow-hidden">
+              <div style="width:82%" class="bg-green-500"></div>
+              <div style="width:12%" class="bg-gray-300 dark:bg-gray-500"></div>
+              <div style="width:6%" class="bg-red-500"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
+              <span>pos 82%</span>
+              <span>neu 12%</span>
+              <span>neg 6%</span>
+            </div>
+          </div>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
             Type a sentence and watch positive/neutral/negative scores update live.
           </p>
