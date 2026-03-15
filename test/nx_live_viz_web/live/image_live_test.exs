@@ -2,49 +2,26 @@ defmodule NxLiveVizWeb.ImageLiveTest do
   use NxLiveVizWeb.ConnCase, async: true
   import Phoenix.LiveViewTest
 
-  defp navigate_to_image(conn) do
-    {:ok, view, _html} = live(conn, ~p"/?tab=image")
-    image_view = find_live_child(view, "image")
-    {view, image_view}
+  test "renders upload area and chart", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/image")
+    assert has_element?(view, "#upload-form")
+    assert has_element?(view, "#image-chart")
   end
 
-  describe "rendering" do
-    test "renders image classification chart container", %{conn: conn} do
-      {_parent, child} = navigate_to_image(conn)
-
-      assert has_element?(child, "#image-chart")
-    end
-
-    test "renders upload form with drop target", %{conn: conn} do
-      {_parent, child} = navigate_to_image(conn)
-
-      assert has_element?(child, ~s|form[phx-change="validate"]|)
-    end
-
-    test "displays seed prediction results section", %{conn: conn} do
-      {_parent, child} = navigate_to_image(conn)
-
-      # Results heading should be present with seed predictions
-      assert has_element?(child, "h3", "Results")
-    end
-
-    test "displays seed history section", %{conn: conn} do
-      {_parent, child} = navigate_to_image(conn)
-
-      # History heading should be present from seed data
-      assert has_element?(child, "h3", "Recent")
-    end
+  test "renders page title", %{conn: conn} do
+    {:ok, _view, html} = live(conn, ~p"/image")
+    assert html =~ "Image Classification"
+    assert html =~ "ResNet-50"
   end
 
-  describe "interactions" do
-    test "validate event is handled without error", %{conn: conn} do
-      {_parent, child} = navigate_to_image(conn)
+  test "renders seed prediction results", %{conn: conn} do
+    {:ok, _view, html} = live(conn, ~p"/image")
+    assert html =~ "daisy"
+  end
 
-      child
-      |> element(~s|form[phx-change="validate"]|)
-      |> render_change(%{})
-
-      assert has_element?(child, "#image-chart")
-    end
+  test "validate event does not crash", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/image")
+    view |> element("#upload-form") |> render_change(%{})
+    assert has_element?(view, "#upload-form")
   end
 end
