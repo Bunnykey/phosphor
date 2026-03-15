@@ -3,7 +3,7 @@ defmodule NxLiveViz.ML.Sentiment do
 
   def serving do
     {:ok, model} = Bumblebee.load_model({:hf, "nlptown/bert-base-multilingual-uncased-sentiment"})
-    {:ok, tokenizer} = Bumblebee.load_tokenizer({:hf, "nlptown/bert-base-multilingual-uncased-sentiment"})
+    {:ok, tokenizer} = Bumblebee.load_tokenizer({:hf, "google-bert/bert-base-multilingual-uncased"})
 
     Bumblebee.Text.text_classification(model, tokenizer,
       compile: [batch_size: 4, sequence_length: 512],
