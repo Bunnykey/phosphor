@@ -2,6 +2,7 @@ defmodule NxLiveVizWeb.DashboardLive do
   use NxLiveVizWeb, :live_view
 
   @tabs ~w(anomaly image sentiment training)a
+  @tab_map %{"anomaly" => :anomaly, "image" => :image, "sentiment" => :sentiment, "training" => :training}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -9,8 +10,8 @@ defmodule NxLiveVizWeb.DashboardLive do
   end
 
   @impl true
-  def handle_params(%{"tab" => tab}, _uri, socket) when tab in ~w(anomaly image sentiment training) do
-    {:noreply, assign(socket, active_tab: String.to_existing_atom(tab))}
+  def handle_params(%{"tab" => tab}, _uri, socket) when is_map_key(@tab_map, tab) do
+    {:noreply, assign(socket, active_tab: @tab_map[tab])}
   end
 
   def handle_params(_params, _uri, socket) do

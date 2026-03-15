@@ -7,7 +7,7 @@ ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
 
 FROM ${BUILDER_IMAGE} as builder
 
-RUN apt-get update -y && apt-get install -y build-essential git curl \
+RUN apt-get update -y && apt-get upgrade -y && apt-get install -y build-essential git curl \
     && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 WORKDIR /app
@@ -27,7 +27,7 @@ COPY lib lib
 COPY priv priv
 COPY assets assets
 
-RUN cd assets && npm install
+RUN cd assets && npm ci
 RUN mix assets.deploy
 RUN mix compile
 RUN mix phx.gen.release
@@ -36,7 +36,7 @@ RUN mix release
 # Runner stage
 FROM ${RUNNER_IMAGE}
 
-RUN apt-get update -y && apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates \
+RUN apt-get update -y && apt-get upgrade -y && apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates \
     && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen

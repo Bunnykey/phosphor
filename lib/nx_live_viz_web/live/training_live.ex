@@ -52,6 +52,10 @@ defmodule NxLiveVizWeb.TrainingLive do
   end
 
   @impl true
+  def handle_event("start", _params, %{assigns: %{training: true}} = socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("start", _params, socket) do
     task =
       Task.async(fn ->
@@ -93,9 +97,9 @@ defmodule NxLiveVizWeb.TrainingLive do
   end
 
   def handle_event("update-params", params, socket) do
-    epochs = params["epochs"] |> to_string() |> String.to_integer() |> max(1) |> min(50)
-    lr = params["learning_rate"] |> to_string() |> String.to_float() |> max(0.0001) |> min(0.01)
-    batch_size = params["batch_size"] |> to_string() |> String.to_integer() |> max(8) |> min(128)
+    epochs = safe_int(params["epochs"], socket.assigns.epochs) |> max(1) |> min(50)
+    lr = safe_float(params["learning_rate"], socket.assigns.learning_rate) |> max(0.0001) |> min(0.01)
+    batch_size = safe_int(params["batch_size"], socket.assigns.batch_size) |> max(8) |> min(128)
 
     {:noreply, assign(socket, epochs: epochs, learning_rate: lr, batch_size: batch_size)}
   end
@@ -196,6 +200,20 @@ defmodule NxLiveVizWeb.TrainingLive do
     |> push_event("chart-data:loss-chart", %{labels: loss_labels, values: reversed_losses})
     |> push_event("chart-data:accuracy-chart", %{labels: acc_labels, values: reversed_accuracies})
     |> push_event("chart-data:weight-histogram", seed_histogram)
+  end
+
+  defp safe_int(value, default) do
+    case Integer.parse(to_string(value)) do
+      {v, _} -> v
+      :error -> default
+    end
+  end
+
+  defp safe_float(value, default) do
+    case Float.parse(to_string(value)) do
+      {v, _} -> v
+      :error -> default
+    end
   end
 
   # Generates realistic demo data for a completed 5-epoch, 50-iteration training run.

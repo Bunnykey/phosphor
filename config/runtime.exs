@@ -32,6 +32,10 @@ if config_env() == :prod do
     System.get_env("SECRET_KEY_BASE") ||
       raise "SECRET_KEY_BASE environment variable is not set"
 
+  if byte_size(secret_key_base) < 64 do
+    raise "SECRET_KEY_BASE must be at least 64 bytes"
+  end
+
   config :nx_live_viz, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :nx_live_viz, NxLiveVizWeb.Endpoint,

@@ -5,7 +5,7 @@ defmodule NxLiveViz.ML.TrainingStore do
 
   def init do
     if :ets.whereis(@table) == :undefined do
-      :ets.new(@table, [:named_table, :public, :set])
+      :ets.new(@table, [:named_table, :protected, :set])
     end
 
     :ok

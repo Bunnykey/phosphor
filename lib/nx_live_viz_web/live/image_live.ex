@@ -60,17 +60,25 @@ defmodule NxLiveVizWeb.ImageLive do
   end
 
   defp handle_progress(:image, entry, socket) do
-    if entry.done? do
+    if entry.done? and not socket.assigns.classifying do
       binary =
         consume_uploaded_entry(socket, entry, fn %{path: path} ->
           {:ok, File.read!(path)}
         end)
 
       ext = entry.client_name |> Path.extname() |> String.trim_leading(".") |> String.downcase()
-      mime_ext = if ext == "jpg", do: "jpeg", else: ext
+
+      mime_ext = case ext do
+        "jpg" -> "jpeg"
+        "jpeg" -> "jpeg"
+        "png" -> "png"
+        "webp" -> "webp"
+        _ -> "png"
+      end
+
       data_url = "data:image/#{mime_ext};base64,#{Base.encode64(binary)}"
 
-      filename = entry.client_name
+      filename = entry.client_name |> String.slice(0, 255) |> String.replace(~r/[[:cntrl:]]/, "")
       pid = self()
 
       Task.start(fn ->
@@ -84,7 +92,7 @@ defmodule NxLiveVizWeb.ImageLive do
 
       {:noreply, socket |> assign(:classifying, true) |> assign(:error, nil) |> assign(:preview_url, data_url)}
     else
-      {:noreply, assign(socket, :classifying, true)}
+      {:noreply, socket}
     end
   end
 

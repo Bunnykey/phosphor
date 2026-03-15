@@ -26,6 +26,10 @@ defmodule NxLiveViz.Data.SystemMetrics do
   end
 
   @impl true
+  def handle_cast(:activate, %{active: true} = state) do
+    {:noreply, state}
+  end
+
   def handle_cast(:activate, state) do
     schedule_collect()
     {:noreply, %{state | active: true}}

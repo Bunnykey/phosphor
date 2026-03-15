@@ -30,6 +30,10 @@ defmodule NxLiveVizWeb.SentimentLive do
   end
 
   @impl true
+  def handle_event("analyze", _params, %{assigns: %{analyzing: true}} = socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("analyze", params, socket) do
     text = String.trim(params["text"] || "")
 
@@ -52,6 +56,10 @@ defmodule NxLiveVizWeb.SentimentLive do
 
         {:noreply, socket}
     end
+  end
+
+  def handle_event("try-sample", %{"text" => text}, socket) do
+    {:noreply, assign(socket, text: String.slice(text, 0, 10_000))}
   end
 
   @impl true
@@ -97,10 +105,6 @@ defmodule NxLiveVizWeb.SentimentLive do
       })
 
     {:noreply, socket}
-  end
-
-  def handle_event("try-sample", %{"text" => text}, socket) do
-    {:noreply, assign(socket, text: text)}
   end
 
   defp seed_sentiment_data do
