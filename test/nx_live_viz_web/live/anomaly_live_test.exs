@@ -18,7 +18,7 @@ defmodule NxLiveVizWeb.AnomalyLiveTest do
     test "displays anomaly count text", %{conn: conn} do
       {_parent, child} = navigate_to_anomaly(conn)
 
-      assert has_element?(child, "span", "Anomalies detected")
+      assert has_element?(child, "span", "Anomalies")
     end
 
     test "renders data source selector with options", %{conn: conn} do
@@ -39,27 +39,48 @@ defmodule NxLiveVizWeb.AnomalyLiveTest do
       assert has_element?(child, "span", "Window: 20")
       assert has_element?(child, "span", "Threshold: 0.5")
     end
+
+    test "renders start button when not streaming", %{conn: conn} do
+      {_parent, child} = navigate_to_anomaly(conn)
+
+      assert has_element?(child, ~s|button[phx-click="start"]|, "Start")
+    end
   end
 
   describe "interactions" do
-    test "change-source event resets data when switching to crypto", %{conn: conn} do
+    test "start button begins streaming", %{conn: conn} do
       {_parent, child} = navigate_to_anomaly(conn)
 
       child
-      |> element(~s|form[phx-change="change-source"]|)
-      |> render_change(%{"source" => "crypto"})
+      |> element(~s|button[phx-click="start"]|)
+      |> render_click()
 
-      assert has_element?(child, "#anomaly-chart")
+      assert has_element?(child, ~s|button[phx-click="stop"]|, "Stop")
+      assert has_element?(child, "span", "Live")
     end
 
-    test "change-source event handles sine selection", %{conn: conn} do
+    test "stop button stops streaming", %{conn: conn} do
       {_parent, child} = navigate_to_anomaly(conn)
 
       child
-      |> element(~s|form[phx-change="change-source"]|)
-      |> render_change(%{"source" => "sine"})
+      |> element(~s|button[phx-click="start"]|)
+      |> render_click()
 
-      assert has_element?(child, "#anomaly-chart")
+      child
+      |> element(~s|button[phx-click="stop"]|)
+      |> render_click()
+
+      assert has_element?(child, ~s|button[phx-click="start"]|, "Start")
+    end
+
+    test "change-source event updates source label", %{conn: conn} do
+      {_parent, child} = navigate_to_anomaly(conn)
+
+      child
+      |> element(~s|select[name="source"]|)
+      |> render_change(%{"source" => "ecg"})
+
+      assert has_element?(child, "span", "ECG Heartbeat")
     end
   end
 end
