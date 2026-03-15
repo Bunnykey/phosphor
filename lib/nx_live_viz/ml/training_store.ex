@@ -14,10 +14,12 @@ defmodule NxLiveViz.ML.TrainingStore do
     {:ok, %{table: table}}
   end
 
+  @spec save(map()) :: :ok
   def save(state) do
     GenServer.cast(__MODULE__, {:save, state})
   end
 
+  @spec load() :: {:ok, map()} | :error
   def load do
     case :ets.lookup(@table, :latest) do
       [{:latest, state}] -> {:ok, state}
@@ -27,6 +29,7 @@ defmodule NxLiveViz.ML.TrainingStore do
     ArgumentError -> :error
   end
 
+  @spec clear() :: :ok
   def clear do
     GenServer.cast(__MODULE__, :clear)
   end

@@ -1,6 +1,7 @@
 defmodule NxLiveViz.ML.Sentiment do
   @moduledoc "Multilingual sentiment analysis using Bumblebee + mBERT."
 
+  @spec serving() :: Nx.Serving.t()
   def serving do
     {:ok, model} = Bumblebee.load_model({:hf, "nlptown/bert-base-multilingual-uncased-sentiment"})
     {:ok, tokenizer} = Bumblebee.load_tokenizer({:hf, "google-bert/bert-base-multilingual-uncased"})
@@ -11,11 +12,13 @@ defmodule NxLiveViz.ML.Sentiment do
     )
   end
 
+  @spec analyze(String.t()) :: map()
   def analyze(text) do
     Nx.Serving.batched_run(NxLiveViz.SentimentServing, text)
   end
 
   @doc "Analyze sentiment for multiple texts concurrently."
+  @spec analyze_many([String.t()]) :: [map()]
   def analyze_many(texts) when is_list(texts) do
     texts
     |> Task.async_stream(&analyze/1, timeout: 30_000)

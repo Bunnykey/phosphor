@@ -37,8 +37,8 @@ defmodule NxLiveViz.Data.CryptoAPITest do
   test "does not fetch when inactive" do
     pid = start_supervised!({CryptoAPI, [name: :crypto_test_inactive]})
 
-    # Send a :fetch message directly while inactive
-    send(pid, :fetch)
+    # Send a :tick message directly while inactive
+    send(pid, :tick)
     state = :sys.get_state(pid)
 
     # last_value should remain nil since the server is inactive

@@ -1,51 +1,22 @@
 defmodule NxLiveViz.Data.CryptoAPI do
   @moduledoc "Fetches cryptocurrency price data as time series."
 
-  use GenServer
+  use NxLiveViz.Data.ActiveSource
 
   require Logger
 
-  @interval 3_000
   @api_url "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
 
-  def start_link(opts \\ []) do
-    name = Keyword.get(opts, :name, __MODULE__)
-    GenServer.start_link(__MODULE__, opts, name: name)
+  @impl NxLiveViz.Data.ActiveSource
+  def source_interval, do: 3_000
+
+  @impl NxLiveViz.Data.ActiveSource
+  def init_state(opts) do
+    %{active: Keyword.get(opts, :active, false), last_value: nil}
   end
 
-  @impl true
-  def init(opts) do
-    active = Keyword.get(opts, :active, false)
-    if active, do: schedule_fetch()
-    {:ok, %{active: active, last_value: nil}}
-  end
-
-  def activate(server \\ __MODULE__) do
-    GenServer.cast(server, :activate)
-  end
-
-  def deactivate(server \\ __MODULE__) do
-    GenServer.cast(server, :deactivate)
-  end
-
-  @impl true
-  def handle_cast(:activate, %{active: true} = state) do
-    {:noreply, state}
-  end
-
-  def handle_cast(:activate, state) do
-    schedule_fetch()
-    {:noreply, %{state | active: true}}
-  end
-
-  def handle_cast(:deactivate, state) do
-    {:noreply, %{state | active: false}}
-  end
-
-  @impl true
-  def handle_info(:fetch, %{active: false} = state), do: {:noreply, state}
-
-  def handle_info(:fetch, state) do
+  @impl NxLiveViz.Data.ActiveSource
+  def collect(state) do
     case fetch_price() do
       {:ok, price} ->
         point = %{
@@ -55,8 +26,7 @@ defmodule NxLiveViz.Data.CryptoAPI do
         }
 
         NxLiveViz.broadcast_sensor_data(point)
-        schedule_fetch()
-        {:noreply, %{state | last_value: price}}
+        %{state | last_value: price}
 
       {:error, reason} ->
         Logger.warning("CryptoAPI fetch failed: #{inspect(reason)}")
@@ -71,8 +41,7 @@ defmodule NxLiveViz.Data.CryptoAPI do
           NxLiveViz.broadcast_sensor_data(point)
         end
 
-        schedule_fetch()
-        {:noreply, state}
+        state
     end
   end
 
@@ -88,9 +57,5 @@ defmodule NxLiveViz.Data.CryptoAPI do
       {:error, reason} ->
         {:error, reason}
     end
-  end
-
-  defp schedule_fetch do
-    Process.send_after(self(), :fetch, @interval)
   end
 end

@@ -96,17 +96,13 @@ defmodule NxLiveVizWeb.AnomalyLive do
         do: socket.assigns.anomaly_count + 1,
         else: socket.assigns.anomaly_count
 
-    display_points = Enum.reverse(points)
-    display_anomalies = Enum.reverse(anomalies)
-    labels = chart_labels(display_points)
-
     socket =
       socket
       |> assign(data_points: points, anomalies: anomalies, anomaly_count: anomaly_count)
-      |> push_event("chart-data:anomaly-chart", %{
-        labels: labels,
-        values: display_points,
-        anomalies: display_anomalies
+      |> push_event("chart-append:anomaly-chart", %{
+        label: to_string(length(points)),
+        value: point.value,
+        anomaly: point.anomaly
       })
 
     {:noreply, socket}
@@ -200,7 +196,7 @@ defmodule NxLiveVizWeb.AnomalyLive do
         </span>
       </div>
 
-      <div id="anomaly-chart" phx-hook="LineChart" phx-update="ignore" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-80">
+      <div id="anomaly-chart" phx-hook="LineChart" phx-update="ignore" data-max-points="200" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-80">
         <canvas></canvas>
       </div>
     </div>

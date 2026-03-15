@@ -68,7 +68,11 @@ defmodule NxLiveViz.MixProject do
       {:axon, "~> 0.7"},
       {:polaris, "~> 0.1"},
       {:bumblebee, "~> 0.6"},
-      {:stb_image, "~> 0.6"}
+      {:stb_image, "~> 0.6"},
+
+      # Dev/Test tools
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 

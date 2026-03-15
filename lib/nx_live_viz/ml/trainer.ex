@@ -1,6 +1,7 @@
 defmodule NxLiveViz.ML.Trainer do
   @moduledoc "MNIST trainer with live metrics broadcasting."
 
+  @spec build_model(:mnist | :fashion | :xor) :: Axon.t()
   def build_model(dataset \\ :mnist) do
     case dataset do
       :xor ->
@@ -18,6 +19,7 @@ defmodule NxLiveViz.ML.Trainer do
     end
   end
 
+  @spec generate_dummy_data(keyword()) :: Enumerable.t()
   def generate_dummy_data(opts \\ []) do
     dataset = Keyword.get(opts, :dataset, :mnist)
     batch_size = Keyword.get(opts, :batch_size, 32)
@@ -68,6 +70,7 @@ defmodule NxLiveViz.ML.Trainer do
     end)
   end
 
+  @spec train(keyword()) :: term()
   def train(opts \\ []) do
     topic = Keyword.get(opts, :topic, "training:metrics")
     epochs = Keyword.get(opts, :epochs, 10)

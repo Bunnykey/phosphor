@@ -4,6 +4,7 @@ defmodule NxLiveViz.ML.AnomalyDetector do
   @default_input_size 20
   @threshold 0.5
 
+  @spec build_model(keyword()) :: Axon.t()
   def build_model(opts \\ []) do
     input_size = Keyword.get(opts, :input_size, @default_input_size)
 
@@ -14,6 +15,7 @@ defmodule NxLiveViz.ML.AnomalyDetector do
     |> Axon.dense(input_size)
   end
 
+  @spec init_params(keyword()) :: map()
   def init_params(opts \\ []) do
     input_size = Keyword.get(opts, :input_size, @default_input_size)
     model = build_model(opts)
@@ -23,6 +25,7 @@ defmodule NxLiveViz.ML.AnomalyDetector do
     %{params: params, model: model, predict_fn: predict_fn, input_size: input_size}
   end
 
+  @spec predict(map(), Nx.Tensor.t()) :: map()
   def predict(%{params: params, predict_fn: predict_fn}, input) do
     output = predict_fn.(params, input)
 
@@ -39,6 +42,7 @@ defmodule NxLiveViz.ML.AnomalyDetector do
     }
   end
 
+  @spec train(map(), Enumerable.t(), keyword()) :: map()
   def train(state, data, opts \\ []) do
     epochs = Keyword.get(opts, :epochs, 10)
 
@@ -57,6 +61,7 @@ defmodule NxLiveViz.ML.AnomalyDetector do
   The trained model is stored in `:persistent_term` so subsequent calls
   (including LiveView re-mounts) return instantly.
   """
+  @spec cached_detector(keyword()) :: map()
   def cached_detector(opts \\ []) do
     case :persistent_term.get({__MODULE__, :default}, nil) do
       nil ->
@@ -74,6 +79,7 @@ defmodule NxLiveViz.ML.AnomalyDetector do
   The autoencoder learns to reconstruct normal patterns, so anomalies
   (which it cannot reconstruct well) will produce high reconstruction error.
   """
+  @spec pretrained_detector(keyword()) :: map()
   def pretrained_detector(opts \\ []) do
     input_size = Keyword.get(opts, :input_size, @default_input_size)
 

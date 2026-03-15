@@ -55,6 +55,35 @@ const LineChart = {
 
       this.chart.update("none")
     })
+
+    // Incremental append: push a single point instead of replacing all data
+    this.handleEvent("chart-append:" + this.el.id, ({ label, value, anomaly }) => {
+      const maxPoints = parseInt(this.el.dataset.maxPoints) || 200
+      this.chart.data.labels.push(label)
+      this.chart.data.datasets[0].data.push(value)
+
+      if (anomaly !== undefined) {
+        if (!Array.isArray(this.chart.data.datasets[0].pointRadius)) {
+          this.chart.data.datasets[0].pointRadius = []
+          this.chart.data.datasets[0].pointBackgroundColor = []
+        }
+        this.chart.data.datasets[0].pointRadius.push(anomaly ? 6 : 0)
+        this.chart.data.datasets[0].pointBackgroundColor.push(
+          anomaly ? "rgb(239, 68, 68)" : "rgb(99, 102, 241)"
+        )
+      }
+
+      while (this.chart.data.labels.length > maxPoints) {
+        this.chart.data.labels.shift()
+        this.chart.data.datasets[0].data.shift()
+        if (Array.isArray(this.chart.data.datasets[0].pointRadius)) {
+          this.chart.data.datasets[0].pointRadius.shift()
+          this.chart.data.datasets[0].pointBackgroundColor.shift()
+        }
+      }
+
+      this.chart.update("none")
+    })
   },
 
   destroyed() {
