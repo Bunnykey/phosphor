@@ -33,6 +33,7 @@ defmodule NxLiveVizWeb.AnomalyLive do
 
     socket =
       assign(socket,
+        current_path: "/anomaly",
         data_points: [],
         anomalies: [],
         detector: detector,
@@ -131,6 +132,7 @@ defmodule NxLiveVizWeb.AnomalyLive do
   @impl true
   def render(assigns) do
     ~H"""
+    <Layouts.app flash={@flash} current_path={@current_path}>
     <div class="space-y-4">
       <div>
         <h2 class="text-xl font-semibold">Anomaly Detection</h2>
@@ -209,6 +211,7 @@ defmodule NxLiveVizWeb.AnomalyLive do
         <canvas></canvas>
       </div>
     </div>
+    </Layouts.app>
     """
   end
 end

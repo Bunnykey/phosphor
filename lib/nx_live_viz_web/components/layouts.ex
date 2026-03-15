@@ -1,83 +1,77 @@
 defmodule NxLiveVizWeb.Layouts do
   @moduledoc """
-  This module holds layouts and related functionality
-  used by your application.
+  Shared layout components — header, navigation, footer, flash, theme toggle.
   """
   use NxLiveVizWeb, :html
 
-  # Embed all files in layouts/* within this module.
-  # The default root.html.heex file contains the HTML
-  # skeleton of your application, namely HTML headers
-  # and other static content.
   embed_templates "layouts/*"
 
-  @doc """
-  Renders your app layout.
-
-  This function is typically invoked from every template,
-  and it often contains your application menu, sidebar,
-  or similar.
-
-  ## Examples
-
-      <Layouts.app flash={@flash}>
-        <h1>Content</h1>
-      </Layouts.app>
-
-  """
-  attr :flash, :map, required: true, doc: "the map of flash messages"
-
-  attr :current_scope, :map,
-    default: nil,
-    doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
-
+  attr :flash, :map, required: true
+  attr :current_path, :string, default: "/"
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
-    <header class="flex items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
-        </a>
-      </div>
-      <div class="flex-none">
-        <ul class="flex flex-column px-1 space-x-4 items-center">
-          <li>
-            <a href="https://phoenixframework.org/" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Website</a>
-          </li>
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">GitHub</a>
-          </li>
-          <li>
-            <.theme_toggle />
-          </li>
-          <li>
-            <a href="https://hexdocs.pm/phoenix/overview.html" class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white rounded-lg bg-[var(--color-primary)] hover:opacity-90 transition-opacity">
-              Get Started <span aria-hidden="true">&rarr;</span>
-            </a>
-          </li>
-        </ul>
-      </div>
-    </header>
+    <div class="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      <header class="border-b border-gray-200 dark:border-gray-800">
+        <div class="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-6">
+            <.link navigate={~p"/"} class="text-base font-semibold text-gray-900 dark:text-white hover:text-gray-600 dark:hover:text-gray-300">
+              Phosphor
+            </.link>
+            <nav class="hidden sm:flex gap-4 text-sm">
+              <.nav_link href={~p"/"} label="Overview" current={@current_path} />
+              <.nav_link href={~p"/anomaly"} label="Anomaly" current={@current_path} />
+              <.nav_link href={~p"/image"} label="Image" current={@current_path} />
+              <.nav_link href={~p"/sentiment"} label="Sentiment" current={@current_path} />
+              <.nav_link href={~p"/training"} label="Training" current={@current_path} />
+            </nav>
+          </div>
+          <.theme_toggle />
+        </div>
+      </header>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
+      <main class="max-w-5xl mx-auto px-6 py-6">
         {render_slot(@inner_block)}
-      </div>
-    </main>
+      </main>
 
-    <.flash_group flash={@flash} />
+      <.flash_group flash={@flash} />
+
+      <footer class="border-t border-gray-200 dark:border-gray-800 mt-12">
+        <div class="max-w-5xl mx-auto px-6 py-4 text-center text-xs text-gray-400 dark:text-gray-500">
+          Built with Phoenix LiveView · Nx · Axon · Bumblebee · EXLA
+        </div>
+      </footer>
+    </div>
+    """
+  end
+
+  attr :href, :string, required: true
+  attr :label, :string, required: true
+  attr :current, :string, required: true
+
+  defp nav_link(assigns) do
+    active =
+      (assigns.href == "/" and assigns.current == "/") or
+        (assigns.href != "/" and String.starts_with?(assigns.current, assigns.href))
+
+    assigns = assign(assigns, :active, active)
+
+    ~H"""
+    <.link navigate={@href} class={[
+      "transition-colors",
+      if(@active,
+        do: "text-blue-600 dark:text-blue-400 font-medium",
+        else: "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+      )
+    ]}>
+      {@label}
+    </.link>
     """
   end
 
   @doc """
   Shows the flash group with standard titles and content.
-
-  ## Examples
-
-      <.flash_group flash={@flash} />
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
   attr :id, :string, default: "flash-group", doc: "the optional id of flash container"
@@ -116,14 +110,12 @@ defmodule NxLiveVizWeb.Layouts do
   end
 
   @doc """
-  Provides dark vs light theme toggle based on themes defined in app.css.
-
-  See <head> in root.html.heex which applies the theme before page load.
+  Provides dark vs light theme toggle.
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="relative flex flex-row items-center border-2 border-[var(--color-base-300)] bg-[var(--color-base-300)] rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border border-[var(--color-base-200)] bg-[var(--color-base-100)] brightness-200 left-0 [.light_&]:left-1/3 [.dark_&]:left-2/3 transition-[left]" />
+    <div class="relative flex flex-row items-center border-2 border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-full">
+      <div class="absolute w-1/3 h-full rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 left-0 [.light_&]:left-1/3 [.dark_&]:left-2/3 transition-[left]" />
 
       <button
         class="flex p-2 cursor-pointer w-1/3"

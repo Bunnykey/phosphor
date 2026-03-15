@@ -9,6 +9,7 @@ defmodule NxLiveVizWeb.ImageLive do
 
     {:ok,
      socket
+     |> assign(:current_path, "/image")
      |> assign(:predictions, seed_predictions)
      |> assign(:history, seed_history)
      |> assign(:result_label, seed_label)
@@ -142,6 +143,7 @@ defmodule NxLiveVizWeb.ImageLive do
   @impl true
   def render(assigns) do
     ~H"""
+    <Layouts.app flash={@flash} current_path={@current_path}>
     <div class="space-y-4">
       <div>
         <h2 class="text-xl font-semibold">Image Classification</h2>
@@ -216,6 +218,7 @@ defmodule NxLiveVizWeb.ImageLive do
         </div>
       </div>
     </div>
+    </Layouts.app>
     """
   end
 end

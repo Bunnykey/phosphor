@@ -29,6 +29,7 @@ defmodule NxLiveVizWeb.TrainingLive do
 
           socket
           |> assign(
+            current_path: "/training",
             training: false,
             task_ref: nil,
             task_pid: nil,
@@ -58,6 +59,7 @@ defmodule NxLiveVizWeb.TrainingLive do
           # No persisted state — use seed data
           socket
           |> assign(
+            current_path: "/training",
             training: false,
             task_ref: nil,
             task_pid: nil,
@@ -324,6 +326,7 @@ defmodule NxLiveVizWeb.TrainingLive do
   @impl true
   def render(assigns) do
     ~H"""
+    <Layouts.app flash={@flash} current_path={@current_path}>
     <div class="space-y-4">
       <div class="flex items-center justify-between">
         <div>
@@ -440,6 +443,7 @@ defmodule NxLiveVizWeb.TrainingLive do
         <canvas></canvas>
       </div>
     </div>
+    </Layouts.app>
     """
   end
 end

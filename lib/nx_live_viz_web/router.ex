@@ -20,7 +20,11 @@ defmodule NxLiveVizWeb.Router do
   scope "/", NxLiveVizWeb do
     pipe_through :browser
 
-    live "/", DashboardLive
+    live "/", OverviewLive
+    live "/anomaly", AnomalyLive
+    live "/image", ImageLive
+    live "/sentiment", SentimentLive
+    live "/training", TrainingLive
   end
 
   # Other scopes may use custom stacks.
