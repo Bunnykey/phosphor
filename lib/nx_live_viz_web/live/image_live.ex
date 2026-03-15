@@ -182,7 +182,7 @@ defmodule NxLiveVizWeb.ImageLive do
         </div>
 
         <div class="space-y-4">
-          <div id="image-chart" phx-hook="BarChart" data-label="Confidence" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
+          <div id="image-chart" phx-hook="BarChart" phx-update="ignore" data-label="Confidence" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
             <canvas></canvas>
           </div>
 

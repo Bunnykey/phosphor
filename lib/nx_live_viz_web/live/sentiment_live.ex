@@ -227,13 +227,13 @@ defmodule NxLiveVizWeb.SentimentLive do
             </div>
           </div>
 
-          <div id="gauge-chart" phx-hook="GaugeChart" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-48">
+          <div id="gauge-chart" phx-hook="GaugeChart" phx-update="ignore" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-48">
             <canvas></canvas>
           </div>
         </div>
 
         <div class="space-y-4">
-          <div id="sentiment-trend" phx-hook="LineChart" data-label="Sentiment Score" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
+          <div id="sentiment-trend" phx-hook="LineChart" phx-update="ignore" data-label="Sentiment Score" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
             <canvas></canvas>
           </div>
 

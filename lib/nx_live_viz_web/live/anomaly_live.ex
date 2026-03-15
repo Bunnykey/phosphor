@@ -164,7 +164,7 @@ defmodule NxLiveVizWeb.AnomalyLive do
         </div>
       </div>
 
-      <div id="anomaly-chart" phx-hook="LineChart" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-80">
+      <div id="anomaly-chart" phx-hook="LineChart" phx-update="ignore" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-80">
         <canvas></canvas>
       </div>
     </div>

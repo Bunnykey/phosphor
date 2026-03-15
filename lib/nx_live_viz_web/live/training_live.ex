@@ -341,15 +341,15 @@ defmodule NxLiveVizWeb.TrainingLive do
       </div>
 
       <div class="grid grid-cols-2 gap-4">
-        <div id="loss-chart" phx-hook="LineChart" data-label="Loss" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
+        <div id="loss-chart" phx-hook="LineChart" phx-update="ignore" data-label="Loss" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
           <canvas></canvas>
         </div>
-        <div id="accuracy-chart" phx-hook="LineChart" data-label="Accuracy" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
+        <div id="accuracy-chart" phx-hook="LineChart" phx-update="ignore" data-label="Accuracy" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
           <canvas></canvas>
         </div>
       </div>
 
-      <div id="weight-histogram" phx-hook="HistogramChart" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
+      <div id="weight-histogram" phx-hook="HistogramChart" phx-update="ignore" class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 h-64">
         <canvas></canvas>
       </div>
     </div>
