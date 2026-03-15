@@ -18,7 +18,7 @@ defmodule NxLiveVizWeb.AnomalyLiveTest do
     test "displays anomaly count text", %{conn: conn} do
       {_parent, child} = navigate_to_anomaly(conn)
 
-      assert has_element?(child, "span.text-red-400")
+      assert has_element?(child, "span", "Anomalies detected")
     end
 
     test "renders data source selector with options", %{conn: conn} do

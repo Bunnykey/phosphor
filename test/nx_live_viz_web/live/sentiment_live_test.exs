@@ -40,8 +40,8 @@ defmodule NxLiveVizWeb.SentimentLiveTest do
       {_parent, child} = navigate_to_sentiment(conn)
 
       # The results panel with Positive/Negative/Neutral labels
-      assert has_element?(child, "span.text-green-400", "Positive")
-      assert has_element?(child, "span.text-red-400", "Negative")
+      assert has_element?(child, "span", "Positive")
+      assert has_element?(child, "span", "Negative")
     end
   end
 

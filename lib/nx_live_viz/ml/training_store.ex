@@ -12,17 +12,29 @@ defmodule NxLiveViz.ML.TrainingStore do
   end
 
   def save(state) do
-    :ets.insert(@table, {:latest, state})
+    try do
+      :ets.insert(@table, {:latest, state})
+    rescue
+      ArgumentError -> :error
+    end
   end
 
   def load do
-    case :ets.lookup(@table, :latest) do
-      [{:latest, state}] -> {:ok, state}
-      [] -> :error
+    try do
+      case :ets.lookup(@table, :latest) do
+        [{:latest, state}] -> {:ok, state}
+        [] -> :error
+      end
+    rescue
+      ArgumentError -> :error
     end
   end
 
   def clear do
-    :ets.delete(@table, :latest)
+    try do
+      :ets.delete(@table, :latest)
+    rescue
+      ArgumentError -> :ok
+    end
   end
 end
