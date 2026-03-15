@@ -53,7 +53,8 @@ defmodule NxLiveViz.Data.Simulator do
     pattern = Keyword.get(opts, :pattern, :sine)
     is_anomaly = :rand.uniform() < anomaly_rate
 
-    base_value = normal_value(:erlang.system_time(:millisecond), pattern)
+    tick = Keyword.get(opts, :tick, :erlang.system_time(:millisecond))
+    base_value = normal_value(tick, pattern)
     noise = :rand.normal() * 2
 
     value =
@@ -79,18 +80,22 @@ defmodule NxLiveViz.Data.Simulator do
     {:ok, %{interval: interval, tick: 0, pattern: :sine}}
   end
 
+  @valid_patterns [:sine, :ecg, :network]
+
   @impl true
   def handle_info(:tick, state) do
-    point = generate_point(pattern: state.pattern)
+    point = generate_point(pattern: state.pattern, tick: state.tick)
     NxLiveViz.broadcast_sensor_data(point)
     schedule_tick(state.interval)
     {:noreply, %{state | tick: state.tick + 1}}
   end
 
   @impl true
-  def handle_cast({:set_pattern, pattern}, state) do
+  def handle_cast({:set_pattern, pattern}, state) when pattern in @valid_patterns do
     {:noreply, %{state | pattern: pattern}}
   end
+
+  def handle_cast({:set_pattern, _}, state), do: {:noreply, state}
 
   defp schedule_tick(interval) do
     Process.send_after(self(), :tick, interval)

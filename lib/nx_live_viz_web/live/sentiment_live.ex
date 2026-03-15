@@ -115,8 +115,10 @@ defmodule NxLiveVizWeb.SentimentLive do
     {:noreply, assign(socket, selected_dataset: nil)}
   end
 
+  @dataset_keys %{"movie" => :movie, "product" => :product, "social" => :social, "news" => :news}
+
   def handle_event("select-dataset", %{"dataset" => dataset}, socket) do
-    {:noreply, assign(socket, selected_dataset: String.to_existing_atom(dataset))}
+    {:noreply, assign(socket, selected_dataset: @dataset_keys[dataset])}
   end
 
   @impl true

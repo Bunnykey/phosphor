@@ -23,9 +23,9 @@ defmodule NxLiveViz.ML.Trainer do
     batch_size = Keyword.get(opts, :batch_size, 32)
 
     case dataset do
-      :mnist -> generate_mnist_data(batch_size)
       :fashion -> generate_fashion_data(batch_size)
       :xor -> generate_xor_data(batch_size)
+      _ -> generate_mnist_data(batch_size)
     end
   end
 
@@ -35,7 +35,7 @@ defmodule NxLiveViz.ML.Trainer do
     Stream.unfold(key, fn key ->
       {xs, key} = Nx.Random.uniform(key, 0.0, 1.0, shape: {batch_size, 784})
       {labels, key} = Nx.Random.randint(key, 0, 10, shape: {batch_size})
-      ys = Nx.equal(Nx.iota({batch_size, 10}, axis: 1), Nx.reshape(labels, {batch_size, 1})) |> Nx.as_type(:f32)
+      ys = one_hot(labels, batch_size, 10)
       {{xs, ys}, key}
     end)
   end
@@ -48,7 +48,7 @@ defmodule NxLiveViz.ML.Trainer do
       {input, key} = Nx.Random.normal(key, shape: {batch_size, 784})
       input = Nx.abs(input) |> Nx.multiply(0.3)
       {label_indices, key} = Nx.Random.randint(key, 0, 10, shape: {batch_size})
-      labels = Nx.equal(Nx.iota({batch_size, 10}, axis: 1), Nx.reshape(label_indices, {batch_size, 1})) |> Nx.as_type(:f32)
+      labels = one_hot(label_indices, batch_size, 10)
       {{input, labels}, key}
     end)
   end
@@ -108,6 +108,11 @@ defmodule NxLiveViz.ML.Trainer do
       {:continue, state}
     end)
     |> Axon.Loop.run(data, %{}, epochs: epochs, iterations: iterations)
+  end
+
+  defp one_hot(indices, batch_size, num_classes) do
+    Nx.equal(Nx.iota({batch_size, num_classes}, axis: 1), Nx.reshape(indices, {batch_size, 1}))
+    |> Nx.as_type(:f32)
   end
 
   defp compute_histogram(tensor, num_bins \\ 30) do
